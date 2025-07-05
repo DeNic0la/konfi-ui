@@ -10,7 +10,13 @@
     "moduleResolution": "bundler",
     "isolatedModules": true,
     "emitDecoratorMetadata": false,
-    "module": "preserve"
+    "module": "preserve",
+    "paths": {
+      "@Views/*": ["src/app/views/*"],
+      "@Services/*": ["src/app/services/*"],
+      "@Components/*": ["src/app/components/*"],
+      "@Environments/*": ["src/environments/*"]
+    }
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,
