@@ -1,0 +1,10 @@
+{
+  "name": "konfi-ui-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/konfi-ui-e2e/src",
+  "tags": [],
+  "implicitDependencies": ["konfi-ui"],
+  "// targets": "to see all targets run: nx show project konfi-ui-e2e --web",
+  "targets": {}
+}
