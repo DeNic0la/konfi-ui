@@ -3,7 +3,7 @@ import * as SockJS from 'sockjs-client';
 import { environment } from '@Environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 import {Client, StompHeaders} from '@stomp/stompjs';
-import {bindCallback, filter, map, Observable, pipe, shareReplay, take, takeUntil, takeWhile} from 'rxjs';
+import {bindCallback, filter, map, Observable, pipe, shareReplay, switchMap, take, takeUntil, takeWhile} from 'rxjs';
 
 const backendUrlFactory = () => {
   const prefix = environment.production ? 'wss' : 'ws';
@@ -56,7 +56,8 @@ export class WebSocketConnectingService {
         filter((value)=>value),
         switchMap(()=>new Observable(subscriber => {
           const clientSub = this.client.subscribe(topic,(message)=>{
-            subscriber.next()
+            // TODO: Validate message using zod schema
+            subscriber.next(message)
           })
         })
       ),
