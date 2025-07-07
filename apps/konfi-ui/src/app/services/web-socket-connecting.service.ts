@@ -16,6 +16,8 @@ import {
 } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {RxStomp} from "@stomp/rx-stomp";
+import {CheckTableMessage, TableMessage} from "../zod/TableMessage";
+import {z} from "zod";
 
 const backendUrlFactory = () => {
   const prefix = environment.production ? 'wss' : 'ws';
@@ -79,6 +81,40 @@ export class WebSocketConnectingService {
     this.rxStompClient.activate();
     this.client.activate();
 
+  }
+  public observeTable(tableName: string) {
+    return this.rxStompClient.watch(`/table/${tableName}`).pipe(
+      map((data)=>{
+        const result = CheckTableMessage.safeParse(data.body);
+        if (result.success) {
+          return result.data;
+        } else {
+          console.log(data.body)
+          console.error('Invalid message format:', result.error);
+          return null; // or handle the error as needed
+        }
+      })
+    )
+  }
+
+  public joinTable(tableName: string,username: string){
+    this.rxStompClient.publish({
+      destination:  `/live/join/${tableName}`,
+      body: JSON.stringify({
+        user: username,
+        type: "JOIN"
+      })
+    })
+  }
+  public updateKonfiVote(tableName: string,username: string,konfi:number){
+    this.rxStompClient.publish({
+      destination:  `/live/update/${tableName}`,
+      body: JSON.stringify({
+        user: username,
+        type: "UPDATE",
+        konfi: z.number().int().parse(konfi)
+      })
+    })
   }
   public observeTopic(topic: string) {
     return this.rxStompClient.watch(topic)

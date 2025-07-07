@@ -43,16 +43,13 @@ export class TableComponent implements AfterViewInit {
 
     if (isPlatformBrowser(this.plattform)) {
       this.webSocketService
-        .observeTopic('/table/' + this.id())
+        .observeTable(<string>this.id())
         .subscribe((res) => {
           console.log(res);
         });
 
-      this.webSocketService.publish("/table/"+this.id(),JSON.stringify({
-        type: "JOIN",
-        konfi: 0,
-        user: "ME"
-      }))
+      this.webSocketService.joinTable(<string>this.id(),"ME")
+      this.webSocketService.updateKonfiVote(<string>this.id(),"ME",0)
     }
   }
 }
