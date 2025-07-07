@@ -1,13 +1,25 @@
 import { inject, Injectable, InjectionToken, PLATFORM_ID } from '@angular/core';
 import SockJS from 'sockjs-client';
 import { isPlatformBrowser } from '@angular/common';
-import {Client, StompHeaders} from '@stomp/stompjs';
-import {bindCallback, filter, map, Observable, pipe, shareReplay, switchMap, take, takeUntil, takeWhile} from 'rxjs';
-import {environment} from "../../environments/environment";
+import { Client, StompHeaders } from '@stomp/stompjs';
+import {
+  bindCallback,
+  filter,
+  map,
+  Observable,
+  pipe,
+  shareReplay,
+  switchMap,
+  take,
+  takeUntil,
+  takeWhile,
+} from 'rxjs';
+import { environment } from '../../environments/environment';
+import {RxStomp} from "@stomp/rx-stomp";
 
 const backendUrlFactory = () => {
   const prefix = environment.production ? 'wss' : 'ws';
-  return `${prefix}://${window.location.hostname}/native`;
+  return `${prefix}://${environment.getHostnameForWS()}/native`;
 };
 
 const webSocketJsFactory = () => {
@@ -25,6 +37,7 @@ const webSocketJsFactory = () => {
   },
 })
 export class WebSocketConnectingService {
+  private readonly rxStompClient = new RxStomp();
   private readonly client = new Client({
     brokerURL: backendUrlFactory(),
     reconnectDelay: 5000,
@@ -36,42 +49,62 @@ export class WebSocketConnectingService {
     this.client.onWebSocketClose = callback.bind(this, false);
     this.client.onConnect = callback.bind(this, true);
     callback(this.client.connected, null);
-    this.client.activate();
   }
-  private readonly onClientConnected$ = bindCallback(this.bindable.bind(this))().pipe(
+  private readonly onClientConnected$ = bindCallback(
+    this.bindable.bind(this)
+  )().pipe(
     map((isConnected, data) => {
-      console.log(data);
       return isConnected;
     }),
     shareReplay({ refCount: true, bufferSize: 1 })
   );
 
   constructor() {
+
     if (typeof WebSocket !== 'function') {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-expect-error
       this.client.webSocketFactory = webSocketJsFactory;
+
+      this.rxStompClient.configure({
+        webSocketFactory: webSocketJsFactory,
+        brokerURL: `${environment.backendUrl}/sockJs`
+      })
     }
+    else {
+      this.rxStompClient.configure({
+        brokerURL: backendUrlFactory()
+      })
+    }
+    this.rxStompClient.activate();
+    this.client.activate();
+
   }
   public observeTopic(topic: string) {
-    this.onClientConnected$.pipe(
-      takeWhile( (value) => (!value),true),
-        filter((value)=>!!value),
-        switchMap(()=>new Observable(subscriber => {
-          const clientSub = this.client.subscribe(topic,(message)=>{
-            // TODO: Validate message using zod schema
-            console.log(message)
-            subscriber.next(message)
+    return this.rxStompClient.watch(topic)
+
+    return this.onClientConnected$.pipe(
+      takeWhile((value) => !value, true),
+      filter((value) => !!value),
+      switchMap(
+        () =>
+          new Observable((subscriber) => {
+            const clientSub = this.client.subscribe(topic, (message) => {
+              // TODO: Validate message using zod schema
+              console.log(message);
+              subscriber.next(message);
+            });
+            return () => {
+              clientSub.unsubscribe();
+            };
           })
-          return () => {
-            clientSub.unsubscribe();
-          };
-        })
       ),
-      )
+      shareReplay({ refCount: true, bufferSize: 1 })
+    );
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public publish(destination:string,body:any){
-    this.client.publish({destination,body})
+  public publish(destination: string, body: any) {
+    return this.rxStompClient.publish({destination,body})
+    this.client.publish({ destination, body });
   }
 }
