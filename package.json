@@ -4,7 +4,7 @@
   "license": "MIT",
   "scripts": {},
   "private": true,
-  packageManager: "pnpm@10.10.0",
+  "packageManager": "pnpm@10.10.0",
   "dependencies": {
     "@angular-devkit/build-angular": "~20.0.0",
     "@angular/common": "~20.0.0",
