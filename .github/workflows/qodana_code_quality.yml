@@ -1,11 +1,16 @@
+
+#-------------------------------------------------------------------------------#
+#            Discover all capabilities of Qodana in our documentation           #
+#             https://www.jetbrains.com/help/qodana/about-qodana.html           #
+#-------------------------------------------------------------------------------#
+
 name: Qodana
 on:
   workflow_dispatch:
   pull_request:
   push:
-    branches: # Specify your branches here
-      - main # The 'main' branch
-      - 'releases/*' # The release branches
+    branches:
+      - main
 
 jobs:
   qodana:
@@ -23,6 +28,13 @@ jobs:
         uses: JetBrains/qodana-action@v2025.1
         with:
           pr-mode: false
+          use-caches: true
+          post-pr-comment: true
+          use-annotations: true
+          # Upload Qodana results (SARIF, other artifacts, logs) as an artifact to the job
+          upload-result: false
+          # quick-fixes available in Ultimate and Ultimate Plus plans
+          push-fixes: 'none'
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN_1200027456 }}
           QODANA_ENDPOINT: 'https://qodana.cloud'
