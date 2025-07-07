@@ -17,4 +17,4 @@ import { CommonModule } from '@angular/common';
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Table {}
+export class TableComponent {}

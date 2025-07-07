@@ -1,4 +1,3 @@
-import SockJS = require('sockjs-client');
 
 export const environment = {
   production: false,
