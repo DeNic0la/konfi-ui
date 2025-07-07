@@ -2,9 +2,14 @@
   "name": "@konfi-ui/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "nx": "nx"
+  },
   "private": true,
-  "packageManager": "pnpm@10.10.0",
+  "engines": {
+    "node": "22.0.0 || >=24.0.0",
+    "pnpm": "8.5.1"
+  },
   "dependencies": {
     "@angular-devkit/build-angular": "~20.0.0",
     "@angular/common": "~20.0.0",

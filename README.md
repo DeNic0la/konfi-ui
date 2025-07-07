@@ -80,3 +80,10 @@ And join the Nx community:
 - [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
 - [Our Youtube channel](https://www.youtube.com/@nxdevtools)
 - [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+
+
+Install pnpm
+```sh
+curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=8.5.1 sh -
+```
+
