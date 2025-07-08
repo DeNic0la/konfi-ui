@@ -12,7 +12,15 @@
     <p-card header="Join" class="w-full h-full">
       @defer (on idle){
         <qr-code [value]="joinUrl()" size="800" [darkColor]="primaryColor.value" [lightColor]="surfaceColor.value" styleClass="w-full h-auto"></qr-code>
-        <p-button label="Copy: {{joinUrl()}}" variant="outlined" (onClick)="copyLink()" (keydown.enter)="copyLink()" pStyleClass= />
+        <div class="flex flex-column justify-content-center align-items-center mt-3">
+          @if (showCopyCheck$ | async){
+            <p-button icon="pi pi-check" label="Copy: {{joinUrl()}}" variant="outlined" (click)="copyLink()" (onClick)="copyLink()" (keydown.enter)="copyLink()" />
+          }
+          @else {
+            <p-button label="Copy: {{joinUrl()}}" variant="outlined" (click)="copyLink()" (onClick)="copyLink()" (keydown.enter)="copyLink()" />
+
+          }
+        </div>
 
       } @placeholder (minimum 10ms){
         <div class="w-full h-3 block">...</div>

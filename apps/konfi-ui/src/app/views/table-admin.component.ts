@@ -8,7 +8,19 @@ import {CommonModule, isPlatformBrowser} from '@angular/common';
 import {NameService} from "../services/name.service";
 import {WebSocketConnectingService, ZodTableMessage} from "../services/web-socket-connecting.service";
 import {toObservable} from "@angular/core/rxjs-interop";
-import {filter, map, mergeScan, Observable, scan, shareReplay, switchMap} from "rxjs";
+import {
+  debounce,
+  delay,
+  filter,
+  map, merge,
+  mergeScan,
+  Observable,
+  scan,
+  shareReplay,
+  Subject,
+  switchMap, tap,
+  throttleTime
+} from "rxjs";
 import {z} from "zod";
 import {Chip} from "primeng/chip";
 import {Card} from "primeng/card";
@@ -40,7 +52,16 @@ import {Clipboard} from "@angular/cdk/clipboard";
 export class TableAdminComponent {
   public primaryColor = $dt('primary.color');
   public surfaceColor = $dt('surface.color');
-
+  private readonly onCopied$ = new Subject<void>();
+  private readonly onCopiedFiltered$ = this.onCopied$.pipe(
+    throttleTime(1000),
+    map(()=> true),
+    shareReplay({refCount: true, bufferSize: 1})
+  )
+  public readonly showCopyCheck$ = merge(
+    this.onCopiedFiltered$,
+    this.onCopiedFiltered$.pipe(delay(800),map(()=>false))
+  )
   private readonly clipboad = inject(Clipboard)
   public readonly nameService = inject(NameService);
   private readonly webSocketService = inject(WebSocketConnectingService);
@@ -49,6 +70,7 @@ export class TableAdminComponent {
   joinUrl = computed(()=>`${window.location.origin}/table/${this.id()}`);
   public copyLink(){
     this.clipboad.copy(this.joinUrl());
+    this.onCopied$.next();
   }
   private readonly a$:Observable<ZodTableMessage> = toObservable(this.id).pipe(
     filter((value):value is string => value !== undefined && value !== null&& typeof value === 'string' && value.length > 0),
