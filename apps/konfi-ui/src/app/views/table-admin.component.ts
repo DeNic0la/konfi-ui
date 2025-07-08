@@ -22,6 +22,7 @@ import {
   Observable,
   scan,
   shareReplay,
+  startWith,
   Subject,
   switchMap,
   throttleTime,
@@ -33,10 +34,11 @@ import { $dt } from '@primeuix/themes';
 import { Button } from 'primeng/button';
 import { Clipboard } from '@angular/cdk/clipboard';
 import { z } from 'zod';
+import { ChartComponent, ChartType } from 'ng-apexcharts';
 
 @Component({
   selector: 'app-table-admin',
-  imports: [CommonModule, Chip, Card, QrCodeComponent, Button],
+  imports: [CommonModule, Chip, Card, QrCodeComponent, Button, ChartComponent],
 
   templateUrl: './table-admin.component.html',
   styles: `
@@ -123,4 +125,84 @@ export class TableAdminComponent {
     }),
     shareReplay({ refCount: true, bufferSize: 1 })
   );
+  public series$ = this.map$.pipe(
+    map((v) => {
+      let votes = [0, 0, 0, 0, 0];
+      for (const vote of Object.values(v)) {
+        if (typeof vote !== 'number') continue;
+        votes[vote - 1]++;
+      }
+      return votes;
+    }),
+    startWith([0, 0, 0, 0, 0]),
+    map((data) => {
+      return [
+        {
+          name: 'Votes',
+          data,
+        },
+      ];
+    })
+  );
+
+  public chartOptions = {
+    responseive: [
+      {
+        breakpoint: 400,
+        options: {
+          chart: {
+            height: 300,
+            width: 400,
+          },
+        },
+      },
+      {
+        breakpoint: 600,
+        options: {
+          chart: {
+            height: 300,
+            width: 600,
+          },
+        },
+      },
+      {
+        breakpoint: 1200,
+        options: {
+          chart: {
+            height: 300,
+            width: 1000,
+          },
+        },
+      },
+    ],
+    chart: {
+      type: 'area' as ChartType,
+      height: 300,
+      width: 1000,
+      zoom: {
+        enabled: false,
+      },
+    },
+    dataLabels: {
+      enabled: false,
+    },
+    stroke: {
+      curve: 'smooth',
+    },
+
+    title: {
+      text: 'Vote Distribution',
+      align: 'left' as const,
+    },
+
+    xaxis: {
+      type: 'numeric' as const,
+    },
+    yaxis: {
+      opposite: true,
+    },
+    legend: {
+      horizontalAlign: 'left',
+    },
+  };
 }
