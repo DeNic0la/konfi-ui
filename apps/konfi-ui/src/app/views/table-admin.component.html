@@ -3,7 +3,7 @@
     <p-card header="Am Tisch dabei sind" class="h-full w-full">
       <div class="flex flex-column h-full w-full gap-3">
         @for (user of users$ | async; track user) {
-          <p-chip label="{{user}}" image="https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png" alt="Avatar image" />
+          <p-chip label="{{user}}" />
         }
       </div>
     </p-card>
@@ -18,7 +18,6 @@
           }
           @else {
             <p-button label="Copy: {{joinUrl()}}" variant="outlined" (click)="copyLink()" (onClick)="copyLink()" (keydown.enter)="copyLink()" />
-
           }
         </div>
 
@@ -32,9 +31,4 @@
       <h1 class="avg">{{avg$ | async}}</h1>
     </p-card>
   </div>
-
-
-
-
-
 </div>

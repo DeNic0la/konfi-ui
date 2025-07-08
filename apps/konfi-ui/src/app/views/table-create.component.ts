@@ -40,7 +40,7 @@ import {Router} from "@angular/router";
                   id="tablename"
                   tabindex="1"
                   pInputText
-                  [invalid]="tablename.trim().length === 0"
+                  [invalid]="isInvalid && tablename.trim().length === 0"
                   [(ngModel)]="tablename"
                 />
                 <label for="tablename">Tablename</label>
@@ -72,6 +72,7 @@ import {Router} from "@angular/router";
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TableCreateComponent {
+  public isInvalid = false;
   private readonly router = inject(Router)
   public tablename = ""
   public createTable(){
@@ -79,6 +80,8 @@ export class TableCreateComponent {
       let tableId = this.tablename.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
       if (tableId === "admin") tableId = "admin-table";
       this.router.navigateByUrl(`/table/admin/${tableId}`).then((v)=>console.log(v)).catch(err=>console.error(err));
+    } else {
+      this.isInvalid = true;
     }
   }
 }
