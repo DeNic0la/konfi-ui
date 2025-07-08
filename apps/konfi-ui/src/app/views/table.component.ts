@@ -1,16 +1,11 @@
 import {
-  afterNextRender,
-  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   inject,
   input,
-  PLATFORM_ID,
   ViewEncapsulation,
 } from '@angular/core';
-import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { WebSocketConnectingService } from '../services/web-socket-connecting.service';
-import { interval } from 'rxjs';
+import { CommonModule } from '@angular/common';
 import { NameService } from '../services/name.service';
 import { KonfiSelectionComponent } from '../components/konfi-selection.component';
 import { NameInputComponent } from '../components/name-input.component';

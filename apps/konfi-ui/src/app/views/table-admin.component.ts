@@ -1,39 +1,42 @@
 import {
-  afterNextRender,
   ChangeDetectionStrategy,
-  Component, computed, inject, input, PLATFORM_ID,
+  Component,
+  computed,
+  inject,
+  input,
+  PLATFORM_ID,
   ViewEncapsulation,
 } from '@angular/core';
-import {CommonModule, isPlatformBrowser} from '@angular/common';
-import {NameService} from "../services/name.service";
-import {WebSocketConnectingService, ZodTableMessage} from "../services/web-socket-connecting.service";
-import {toObservable} from "@angular/core/rxjs-interop";
+import { CommonModule } from '@angular/common';
+import { NameService } from '../services/name.service';
 import {
-  debounce,
+  WebSocketConnectingService,
+  ZodTableMessage,
+} from '../services/web-socket-connecting.service';
+import { toObservable } from '@angular/core/rxjs-interop';
+import {
   delay,
   filter,
-  map, merge,
-  mergeScan,
+  map,
+  merge,
   Observable,
   scan,
   shareReplay,
   Subject,
-  switchMap, tap,
-  throttleTime
-} from "rxjs";
-import {z} from "zod";
-import {Chip} from "primeng/chip";
-import {Card} from "primeng/card";
-import {StyleClass} from "primeng/styleclass";
-import {QrCodeComponent} from "ng-qrcode";
-import {$dt} from "@primeuix/themes";
-import {Button} from "primeng/button";
-import {Clipboard} from "@angular/cdk/clipboard";
-
+  switchMap,
+  throttleTime,
+} from 'rxjs';
+import { Chip } from 'primeng/chip';
+import { Card } from 'primeng/card';
+import { QrCodeComponent } from 'ng-qrcode';
+import { $dt } from '@primeuix/themes';
+import { Button } from 'primeng/button';
+import { Clipboard } from '@angular/cdk/clipboard';
+import { z } from 'zod';
 
 @Component({
   selector: 'app-table-admin',
-  imports: [CommonModule, Chip, Card, StyleClass, QrCodeComponent, Button],
+  imports: [CommonModule, Chip, Card, QrCodeComponent, Button],
 
   templateUrl: './table-admin.component.html',
   styles: `
@@ -55,54 +58,69 @@ export class TableAdminComponent {
   private readonly onCopied$ = new Subject<void>();
   private readonly onCopiedFiltered$ = this.onCopied$.pipe(
     throttleTime(1000),
-    map(()=> true),
-    shareReplay({refCount: true, bufferSize: 1})
-  )
+    map(() => true),
+    shareReplay({ refCount: true, bufferSize: 1 })
+  );
   public readonly showCopyCheck$ = merge(
     this.onCopiedFiltered$,
-    this.onCopiedFiltered$.pipe(delay(800),map(()=>false))
-  )
-  private readonly clipboad = inject(Clipboard)
+    this.onCopiedFiltered$.pipe(
+      delay(800),
+      map(() => false)
+    )
+  );
+  private readonly clipboad = inject(Clipboard);
   public readonly nameService = inject(NameService);
   private readonly webSocketService = inject(WebSocketConnectingService);
   private readonly plattform = inject(PLATFORM_ID);
   id = input<string>();
-  joinUrl = computed(()=>`${window.location.origin}/table/${this.id()}`);
-  public copyLink(){
+  joinUrl = computed(() => `${window.location.origin}/table/${this.id()}`);
+  public copyLink() {
     this.clipboad.copy(this.joinUrl());
     this.onCopied$.next();
   }
-  private readonly a$:Observable<ZodTableMessage> = toObservable(this.id).pipe(
-    filter((value):value is string => value !== undefined && value !== null&& typeof value === 'string' && value.length > 0),
-    switchMap((tableId)=>      this.webSocketService.observeTable(tableId) ),
-    filter((v):v is ZodTableMessage=> v !== undefined && v !== null),
-    shareReplay({refCount: true, bufferSize: 1})
-  )
-  private readonly map$  = this.a$.pipe(
-    scan((acc, value)=>{
-      if (typeof value?.user === "string" &&( value?.type === 'JOIN' || value?.type === 'UPDATE')) {
-        acc = {...acc, [value.user]: value.konfi}
-      }
-      else if (value?.type === 'LEAVE' && typeof value?.user === "string") {
-        delete acc[value.user]
+  private readonly a$: Observable<ZodTableMessage> = toObservable(this.id).pipe(
+    filter(
+      (value): value is string =>
+        value !== undefined && value !== null && value.length > 0
+    ),
+    switchMap((tableId) => this.webSocketService.observeTable(tableId)),
+    filter((v): v is ZodTableMessage => v !== undefined && v !== null),
+    shareReplay({ refCount: true, bufferSize: 1 })
+  );
+  private readonly map$ = this.a$.pipe(
+    scan((acc, value) => {
+      if (
+        typeof value?.user === 'string' &&
+        (value?.type === 'JOIN' || value?.type === 'UPDATE')
+      ) {
+        acc = { ...acc, [value.user]: value.konfi };
+      } else if (value?.type === 'LEAVE' && typeof value?.user === 'string') {
+        delete acc[value.user];
       }
       return acc;
-    },{} as Record<string, number|null>),
-    shareReplay({refCount: true, bufferSize: 1}),
-  )
+    }, {} as Record<string, number | null>),
+    shareReplay({ refCount: true, bufferSize: 1 })
+  );
 
   public readonly avg$ = this.map$.pipe(
-    map((data)=>{
-      const all = Object.values(data).filter((value):value is number => z.number().min(0).max(5).safeParse(value).success)
-      return all.reduce((previousValue, currentValue) => previousValue+currentValue,0) / all.length
+    map((data) => {
+      const all = Object.values(data).filter(
+        (value): value is number =>
+          z.number().min(0).max(5).safeParse(value).success
+      );
+      return (
+        all.reduce(
+          (previousValue, currentValue) => previousValue + currentValue,
+          0
+        ) / all.length
+      );
     }),
-    shareReplay({refCount: true, bufferSize: 1}),
-  )
+    shareReplay({ refCount: true, bufferSize: 1 })
+  );
   public readonly users$ = this.map$.pipe(
-    map((data)=>{
-      return Object.keys(data)
+    map((data) => {
+      return Object.keys(data);
     }),
-    shareReplay({refCount: true, bufferSize: 1}),
-  )
-
+    shareReplay({ refCount: true, bufferSize: 1 })
+  );
 }

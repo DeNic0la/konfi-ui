@@ -1,23 +1,20 @@
 import { inject, Injectable, InjectionToken, PLATFORM_ID } from '@angular/core';
 import SockJS from 'sockjs-client';
 import { isPlatformBrowser } from '@angular/common';
-import { Client, StompHeaders } from '@stomp/stompjs';
+import { Client } from '@stomp/stompjs';
 import {
   bindCallback,
   filter,
   map,
   Observable,
-  pipe,
   shareReplay,
   switchMap,
-  take,
-  takeUntil,
   takeWhile,
 } from 'rxjs';
 import { environment } from '../../environments/environment';
-import {RxStomp} from "@stomp/rx-stomp";
-import {CheckTableMessage, TableMessage} from "../zod/TableMessage";
-import {z} from "zod";
+import { RxStomp } from '@stomp/rx-stomp';
+import { CheckTableMessage, TableMessage } from '../zod/TableMessage';
+import { z } from 'zod';
 
 const backendUrlFactory = () => {
   const prefix = environment.production ? 'wss' : 'ws';
@@ -64,7 +61,6 @@ export class WebSocketConnectingService {
   );
 
   constructor() {
-
     if (typeof WebSocket !== 'function') {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-expect-error
@@ -72,54 +68,52 @@ export class WebSocketConnectingService {
 
       this.rxStompClient.configure({
         webSocketFactory: webSocketJsFactory,
-        brokerURL: `${environment.backendUrl}/sockJs`
-      })
-    }
-    else {
+        brokerURL: `${environment.backendUrl}/sockJs`,
+      });
+    } else {
       this.rxStompClient.configure({
-        brokerURL: backendUrlFactory()
-      })
+        brokerURL: backendUrlFactory(),
+      });
     }
     this.rxStompClient.activate();
     this.client.activate();
-
   }
   public observeTable(tableName: string) {
     return this.rxStompClient.watch(`/table/${tableName}`).pipe(
-      map((data)=>{
+      map((data) => {
         const result = CheckTableMessage.safeParse(data.body);
         if (result.success) {
           return result.data;
         } else {
-          console.log(data.body)
+          console.log(data.body);
           console.error('Invalid message format:', result.error);
           return null; // or handle the error as needed
         }
       })
-    )
+    );
   }
 
-  public joinTable(tableName: string,username: string){
+  public joinTable(tableName: string, username: string) {
     this.rxStompClient.publish({
-      destination:  `/live/join/${tableName}`,
+      destination: `/live/join/${tableName}`,
       body: JSON.stringify({
         user: username,
-        type: "JOIN"
-      })
-    })
+        type: 'JOIN',
+      }),
+    });
   }
-  public updateKonfiVote(tableName: string,username: string,konfi:number){
+  public updateKonfiVote(tableName: string, username: string, konfi: number) {
     this.rxStompClient.publish({
-      destination:  `/live/update/${tableName}`,
+      destination: `/live/update/${tableName}`,
       body: JSON.stringify({
         user: username,
-        type: "UPDATE",
-        konfi: z.number().int().parse(konfi)
-      })
-    })
+        type: 'UPDATE',
+        konfi: z.number().int().parse(konfi),
+      }),
+    });
   }
   public observeTopic(topic: string) {
-    return this.rxStompClient.watch(topic)
+    return this.rxStompClient.watch(topic);
 
     return this.onClientConnected$.pipe(
       takeWhile((value) => !value, true),
@@ -142,7 +136,7 @@ export class WebSocketConnectingService {
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public publish(destination: string, body: any) {
-    return this.rxStompClient.publish({destination,body})
+    return this.rxStompClient.publish({ destination, body });
     this.client.publish({ destination, body });
   }
 }
