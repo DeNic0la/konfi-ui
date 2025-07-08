@@ -28,6 +28,8 @@ const webSocketJsFactory = () => {
   return new SockJS(`${environment.backendUrl}/sockJs`);
 };
 
+export type ZodTableMessage = z.infer<typeof TableMessage>;
+
 @Injectable({
   providedIn: 'root',
   useFactory: () => {

@@ -1,0 +1,86 @@
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component, computed, inject, input, PLATFORM_ID,
+  ViewEncapsulation,
+} from '@angular/core';
+import {CommonModule, isPlatformBrowser} from '@angular/common';
+import {NameService} from "../services/name.service";
+import {WebSocketConnectingService, ZodTableMessage} from "../services/web-socket-connecting.service";
+import {toObservable} from "@angular/core/rxjs-interop";
+import {filter, map, mergeScan, Observable, scan, shareReplay, switchMap} from "rxjs";
+import {z} from "zod";
+import {Chip} from "primeng/chip";
+import {Card} from "primeng/card";
+import {StyleClass} from "primeng/styleclass";
+import {QrCodeComponent} from "ng-qrcode";
+import {$dt} from "@primeuix/themes";
+import {Button} from "primeng/button";
+import {Clipboard} from "@angular/cdk/clipboard";
+
+
+@Component({
+  selector: 'app-table-admin',
+  imports: [CommonModule, Chip, Card, StyleClass, QrCodeComponent, Button],
+
+  templateUrl: './table-admin.component.html',
+  styles: `
+    :host {
+      display: block;
+    }
+    .avg {
+      font-size: 5rem;
+      text-align: center;
+      color: var(--primary-color);
+    }
+  `,
+  encapsulation: ViewEncapsulation.None,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class TableAdminComponent {
+  public primaryColor = $dt('primary.color');
+  public surfaceColor = $dt('surface.color');
+
+  private readonly clipboad = inject(Clipboard)
+  public readonly nameService = inject(NameService);
+  private readonly webSocketService = inject(WebSocketConnectingService);
+  private readonly plattform = inject(PLATFORM_ID);
+  id = input<string>();
+  joinUrl = computed(()=>`${window.location.origin}/table/${this.id()}`);
+  public copyLink(){
+    this.clipboad.copy(this.joinUrl());
+  }
+  private readonly a$:Observable<ZodTableMessage> = toObservable(this.id).pipe(
+    filter((value):value is string => value !== undefined && value !== null&& typeof value === 'string' && value.length > 0),
+    switchMap((tableId)=>      this.webSocketService.observeTable(tableId) ),
+    filter((v):v is ZodTableMessage=> v !== undefined && v !== null),
+    shareReplay({refCount: true, bufferSize: 1})
+  )
+  private readonly map$  = this.a$.pipe(
+    scan((acc, value)=>{
+      if (typeof value?.user === "string" &&( value?.type === 'JOIN' || value?.type === 'UPDATE')) {
+        acc = {...acc, [value.user]: value.konfi}
+      }
+      else if (value?.type === 'LEAVE' && typeof value?.user === "string") {
+        delete acc[value.user]
+      }
+      return acc;
+    },{} as Record<string, number|null>),
+    shareReplay({refCount: true, bufferSize: 1}),
+  )
+
+  public readonly avg$ = this.map$.pipe(
+    map((data)=>{
+      const all = Object.values(data).filter((value):value is number => z.number().min(0).max(5).safeParse(value).success)
+      return all.reduce((previousValue, currentValue) => previousValue+currentValue,0) / all.length
+    }),
+    shareReplay({refCount: true, bufferSize: 1}),
+  )
+  public readonly users$ = this.map$.pipe(
+    map((data)=>{
+      return Object.keys(data)
+    }),
+    shareReplay({refCount: true, bufferSize: 1}),
+  )
+
+}

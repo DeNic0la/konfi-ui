@@ -5,6 +5,12 @@ import { NameInputComponent } from './components/name-input.component';
 
 export const appRoutes: Route[] = [
   {
+    path: 'table/admin/:id',
+    loadComponent: () =>
+      import('./views/table-admin.component').then((value) => value.TableAdminComponent),
+    title: 'Admin Brekfast Table',
+  },
+  {
     path: 'table/:id',
     loadComponent: () =>
       import('./views/table.component').then((value) => value.TableComponent),

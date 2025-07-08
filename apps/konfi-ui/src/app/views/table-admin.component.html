@@ -1,0 +1,32 @@
+<div class="grid p-2 h-full w-full">
+  <div class="col-4">
+    <p-card header="Am Tisch dabei sind" class="h-full w-full">
+      <div class="flex flex-column h-full w-full gap-3">
+        @for (user of users$ | async; track user) {
+          <p-chip label="{{user}}" image="https://primefaces.org/cdn/primeng/images/demo/avatar/amyelsner.png" alt="Avatar image" />
+        }
+      </div>
+    </p-card>
+  </div>
+  <div class="col-4">
+    <p-card header="Join" class="w-full h-full">
+      @defer (on idle){
+        <qr-code [value]="joinUrl()" size="800" [darkColor]="primaryColor.value" [lightColor]="surfaceColor.value" styleClass="w-full h-auto"></qr-code>
+        <p-button label="Copy: {{joinUrl()}}" variant="outlined" (onClick)="copyLink()" (keydown.enter)="copyLink()" pStyleClass= />
+
+      } @placeholder (minimum 10ms){
+        <div class="w-full h-3 block">...</div>
+      }
+    </p-card>
+  </div>
+  <div class="col-4">
+    <p-card header="Durchschnitt" class="w-full h-full">
+      <h1 class="avg">{{avg$ | async}}</h1>
+    </p-card>
+  </div>
+
+
+
+
+
+</div>
