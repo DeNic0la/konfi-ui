@@ -8,9 +8,9 @@ COPY . ./
 RUN pnpm exec nx run konfi-ui:build:production
 
 FROM node:20.13.1-alpine3.19
+ADD /dist/apps/konfi-ui ./usr/app
 RUN addgroup -S angulargroup && adduser -S angular -G angulargroup
 USER angular
 WORKDIR /usr/app
-COPY --from=build "/dist/apps/kofi-ui" "./"
 CMD ["node", "server/server.mjs"]
 EXPOSE 4000
