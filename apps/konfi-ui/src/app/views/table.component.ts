@@ -10,16 +10,21 @@ import {
 } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { WebSocketConnectingService } from '../services/web-socket-connecting.service';
-import {interval} from "rxjs";
+import { interval } from 'rxjs';
+import { NameService } from '../services/name.service';
+import { KonfiSelectionComponent } from '../components/konfi-selection.component';
+import { NameInputComponent } from '../components/name-input.component';
 
 @Component({
   selector: 'app-table',
-  imports: [CommonModule],
+  imports: [CommonModule, KonfiSelectionComponent, NameInputComponent],
   template: `<div>
-    <p>TableComponent</p>
-    <p>{{id()}}</p>
-    <p>{{interval | async}}</p>
-  </div>`,
+    @if (nameService.nameConfirmed){
+    <app-konfi-selection [id]="id()"></app-konfi-selection>
+    } @else {
+    <app-name-input></app-name-input>
+    }
+  </div> `,
   styles: `
     :host {
       display: block;
@@ -28,28 +33,7 @@ import {interval} from "rxjs";
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TableComponent implements AfterViewInit {
-  private readonly webSocketService = inject(WebSocketConnectingService);
-  private readonly plattform = inject(PLATFORM_ID);
+export class TableComponent {
+  public readonly nameService = inject(NameService);
   id = input<string>();
-  public readonly interval = interval(1000)
-  constructor() {
-    afterNextRender(() => {
-      // Safe to check `scrollHeight` because this will only run in the browser, not the server.
-    });
-  }
-  ngAfterViewInit(): void {
-    console.log(this.plattform);
-
-    if (isPlatformBrowser(this.plattform)) {
-      this.webSocketService
-        .observeTable(<string>this.id())
-        .subscribe((res) => {
-          console.log(res);
-        });
-
-      this.webSocketService.joinTable(<string>this.id(),"ME")
-      this.webSocketService.updateKonfiVote(<string>this.id(),"ME",0)
-    }
-  }
 }
