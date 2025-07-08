@@ -17,17 +17,14 @@ export const appRoutes: Route[] = [
     title: 'Brekfast Table',
   },
   {
-    path: 'name',
-    component: NameInputComponent,
-  },
-  {
-    path: 't/:id',
-    component: TableComponent,
-    title: 'Brekfast Table',
+    path: '',
+    pathMatch: "full",
+    title: 'Create Brekfast Table',
+    loadComponent: () => import('./views/table-create.component').then(value => value.TableCreateComponent)
   },
   {
     path: '**',
-    component: NxWelcome,
+    redirectTo: '/',
     title: 'Welcome',
   },
 ];
