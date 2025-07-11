@@ -6,10 +6,10 @@ export default defineConfig({
     ...nxE2EPreset(__filename, {
       cypressDir: 'src',
       webServerCommands: {
-        default: 'npx nx run konfi-ui:serve',
-        production: 'npx nx run konfi-ui:serve-static',
+        default: 'pnpm exec nx run konfi-ui:serve',
+        production: 'pnpm exec nx run konfi-ui:serve-static',
       },
-      ciWebServerCommand: 'npx nx run konfi-ui:serve-static',
+      ciWebServerCommand: 'pnpm exec nx run konfi-ui:serve-static',
       ciBaseUrl: 'http://localhost:4200',
     }),
     baseUrl: 'http://localhost:4200',
