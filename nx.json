@@ -79,6 +79,7 @@
       "standalone": true,
       "changeDetection": "OnPush",
       "displayBlock": true,
+      "type": "component",
       "inlineStyle": true,
       "inlineTemplate": true,
       "viewEncapsulation": "None"

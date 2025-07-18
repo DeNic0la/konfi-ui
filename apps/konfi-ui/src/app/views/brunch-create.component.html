@@ -1,0 +1,59 @@
+<div class="grid w-full">
+  <div class="col-10 col-offset-1 pt-6">
+    <p-card header="Brunch Erstellen">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="grid pt-4">
+        <div class="col-6">
+          <p-floatlabel>
+            <input pInputText id="title"
+                   formControlName="title"
+                   [invalid]="isInvalid('title')"
+                   autocomplete="off" />
+            <label for="title">Brunch Name</label>
+          </p-floatlabel>
+        </div>
+        <div class="col-6"><p-floatlabel>
+          <input pInputText id="id"
+                 formControlName="id"
+                 [invalid]="isInvalid('id')"
+                 [pKeyFilter]="idRegexp"
+                 minlength="3"
+                 maxlength="50"
+                 autocomplete="off" />
+          <label for="title">Brunch ID</label>
+        </p-floatlabel></div>
+        <div class="col-6 pt-4">
+          <p-floatlabel>
+            <p-password formControlName="votingPassword" [feedback]="false" [toggleMask]="true" inputId="vote_password" />
+            <label for="vote_password">Voting Password</label>
+          </p-floatlabel>
+        </div>
+        <div class="col-6 pt-4">
+          <p-floatlabel>
+            <p-password formControlName="adminPassword" [feedback]="false" [toggleMask]="true" inputId="admin_password" />
+            <label for="admin_password">Admin Password</label>
+          </p-floatlabel>
+        </div>
+        <div class="col-10 col-offset-1 pt-5">
+          <h3>Questions:</h3>
+          <div class="grid">
+            <div class="col-12" >
+              <p-floatlabel>
+                <input pInputText id="question"
+                       formControlName="question"
+                       class="w-full"
+                       [invalid]="isInvalid('question')"
+                       minlength="3"
+                       maxlength="50"
+                       autocomplete="off" />
+                <label for="question">Question</label>
+              </p-floatlabel>
+            </div>
+          </div>
+        </div>
+        <div class="col-12">
+          <p-button label="Submit" type="submit" />
+        </div>
+      </form>
+    </p-card>
+  </div>
+</div>

@@ -5,6 +5,11 @@ import { NameInputComponent } from './components/name-input.component';
 
 export const appRoutes: Route[] = [
   {
+    path: 'brunch/create',
+    loadComponent: () => import('./views/brunch-create.component').then(value => value.BrunchCreateComponent),
+    title: 'Create Brunch'
+  },
+  {
     path: 'table/admin/:id',
     loadComponent: () =>
       import('./views/table-admin.component').then((value) => value.TableAdminComponent),
