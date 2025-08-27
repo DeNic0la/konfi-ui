@@ -436,11 +436,6 @@ export class BrunchCreateComponent implements OnInit, OnDestroy {
     });
   }
 
-  goBack() {
-    this.router.navigate(['/'])
-      .then(() => console.log('Navigated back to home'))
-      .catch(err => console.error('Navigation error:', err));
-  }
 
   ngOnDestroy(): void {
     this.sub.unsubscribe();
