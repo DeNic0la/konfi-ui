@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NameInputComponent } from './name-input.component';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
 
 describe('NameInputComponent', () => {
   let component: NameInputComponent;
@@ -8,6 +9,7 @@ describe('NameInputComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [NameInputComponent],
+      schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
 
     fixture = TestBed.createComponent(NameInputComponent);

@@ -127,7 +127,7 @@ export class TableAdminComponent {
   );
   public series$ = this.map$.pipe(
     map((v) => {
-      let votes = [0, 0, 0, 0, 0];
+      const votes = [0, 0, 0, 0, 0];
       for (const vote of Object.values(v)) {
         if (typeof vote !== 'number') continue;
         votes[vote - 1]++;
@@ -146,7 +146,7 @@ export class TableAdminComponent {
   );
 
   public chartOptions = {
-    responseive: [
+    responsive: [
       {
         breakpoint: 400,
         options: {

@@ -1,13 +1,16 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  inject, input, Input, Output,
+  inject,
+  input,
+  Input,
+  Output,
   ViewEncapsulation,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FloatLabelModule } from 'primeng/floatlabel';
 import { InputText } from 'primeng/inputtext';
-import {ControlValueAccessor, FormsModule} from '@angular/forms';
+import { ControlValueAccessor, FormsModule } from '@angular/forms';
 import { ButtonDirective, ButtonIcon, ButtonLabel } from 'primeng/button';
 import { StyleClass } from 'primeng/styleclass';
 import {
@@ -20,8 +23,8 @@ import {
   Subject,
   map,
   switchMap,
-  take
-} from "rxjs";
+  take,
+} from 'rxjs';
 import { PushPipe } from '@ngrx/component';
 
 @Component({
@@ -35,7 +38,7 @@ import { PushPipe } from '@ngrx/component';
     ButtonIcon,
     ButtonDirective,
     StyleClass,
-    PushPipe
+    PushPipe,
   ],
   template: `
     <div
@@ -45,7 +48,7 @@ import { PushPipe } from '@ngrx/component';
         class="flex flex-column flex-nowrap block m-auto justify-content-center align-content-center align-items-center"
       >
         <div class="block justify-content-center align-self-center">
-          <h3>{{title}}</h3>
+          <h3>{{ title }}</h3>
           <div class="mt-3 grid grid-cols-2 gap-2">
             <div class="w-1/3 block">
               <p-floatlabel pStyleClass="w-6">
@@ -57,7 +60,7 @@ import { PushPipe } from '@ngrx/component';
                   [ngModel]="viewValue$ | ngrxPush"
                   (ngModelChange)="modelValue$.next($event)"
                 />
-                <label for="{{id}}">Username</label>
+                <label for="{{ id }}">Username</label>
               </p-floatlabel>
             </div>
             <div class="w-1/3 block">
@@ -68,7 +71,7 @@ import { PushPipe } from '@ngrx/component';
                   tabindex="2"
                   (keydown.enter)="onSubmitAction$.next()"
                   (click)="onSubmitAction$.next()"
-                  >{{buttonLabel}}</span
+                  >{{ buttonLabel }}</span
                 >
               </button>
             </div>
@@ -87,32 +90,30 @@ import { PushPipe } from '@ngrx/component';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FullScreenInputComponent {
-  @Input('id') id = "";
-  @Input('buttonLabel') buttonLabel = "Ok";
-  @Input('title') title = "Gib deinen Namen an";
+  @Input() id = '';
+  @Input() buttonLabel = 'Ok';
+  @Input() title = 'Gib deinen Namen an';
   public readonly onSubmitAction$ = new Subject<void>();
   public readonly modelValue$ = new Subject<string>();
-  @Input('value') set value(val: string) {
+  @Input() set value(val: string) {
     this.modelValue$.next(val);
   }
   public readonly viewValue$ = this.modelValue$.pipe(
     debounceTime(800),
-    shareReplay({bufferSize:1,refCount: true})
-  )
-  @Output('onSubmitValue')
-  public readonly onSubmitValue$ = this.viewValue$.pipe(
-    map(value=>value?.trim()?.length > 0),
+    shareReplay({ bufferSize: 1, refCount: true })
+  );
+
+  @Output()
+  public readonly sucessfullSubmit$ = this.viewValue$.pipe(
+    map((value) => value?.trim()?.length > 0),
     distinctUntilChanged(),
-    switchMap((valid)=> valid?
-      this.onSubmitAction$.pipe(
-      debounce(() => this.viewValue$),
-        switchMap(()=>this.viewValue$.pipe(
-          take(1)
-        ))
-
-
-    ) : NEVER
+    switchMap((valid) =>
+      valid
+        ? this.onSubmitAction$.pipe(
+            debounce(() => this.viewValue$),
+            switchMap(() => this.viewValue$.pipe(take(1)))
+          )
+        : NEVER
     )
-  )
-
+  );
 }
