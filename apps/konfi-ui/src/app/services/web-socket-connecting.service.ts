@@ -22,7 +22,7 @@ const backendUrlFactory = () => {
 };
 
 const webSocketJsFactory = () => {
-  return new SockJS(`${environment.backendUrl}/sockJs`);
+  return new SockJS(`${environment.backendUrl}sockJs`);
 };
 
 export type ZodTableMessage = z.infer<typeof TableMessage>;
@@ -68,7 +68,7 @@ export class WebSocketConnectingService {
 
       this.rxStompClient.configure({
         webSocketFactory: webSocketJsFactory,
-        brokerURL: `${environment.backendUrl}/sockJs`,
+        brokerURL: `${environment.backendUrl}sockJs`,
       });
     } else {
       this.rxStompClient.configure({

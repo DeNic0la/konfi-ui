@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { z } from 'zod';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import {environment} from "../../environments/environment";
 
 @Injectable({
   providedIn: 'root',
@@ -25,7 +26,7 @@ export class BrunchCreateService {
       votingPassword,
       questions: question,
     });
-    return this.http.post('http://localhost:8080/api/brunches', validData);
+    return this.http.post(`${environment.backendUrl}api/brunches`, validData);
   }
 }
 
