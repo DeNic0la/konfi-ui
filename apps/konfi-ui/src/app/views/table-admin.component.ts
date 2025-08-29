@@ -55,8 +55,8 @@ import { ChartComponent, ChartType } from 'ng-apexcharts';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TableAdminComponent {
-  public primaryColor = $dt('primary.color');
-  public surfaceColor = $dt('surface.color');
+  public primaryColor = $dt('primary.color') as {name: string, variable: string, value: `#${string}`};
+  public surfaceColor = $dt('surface.color') as {name: string, variable: string, value: `#${string}`};
   private readonly onCopied$ = new Subject<void>();
   private readonly onCopiedFiltered$ = this.onCopied$.pipe(
     throttleTime(1000),
