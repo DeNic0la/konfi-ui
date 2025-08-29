@@ -3,6 +3,7 @@ RUN npm i -g pnpm@8.5.1
 WORKDIR /app/src
 ENV NX_DAEMON=false
 COPY package*.json ./
+COPY pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY . ./
 RUN pnpm exec nx run konfi-ui:build:production
