@@ -6,7 +6,7 @@ import {
 } from '@angular/common/http/testing';
 import { BrunchCreateService } from './brunch-create.service';
 
-const CALLED_BRUNCH_ENDPOINT = 'http://localhost:8080/api/brunches'
+const CALLED_BRUNCH_ENDPOINT = '/api/brunches'
 
 describe('BrunchCreateService', () => {
   let service: BrunchCreateService;
