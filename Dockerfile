@@ -9,7 +9,7 @@ COPY . ./
 RUN pnpm exec nx run konfi-ui:build:production
 
 FROM node:20.13.1-alpine3.19
-COPY --from=build /dist/apps/konfi-ui ./usr/app
+COPY --from=build /app/src/dist/apps/konfi-ui /usr/app
 RUN addgroup -S angulargroup && adduser -S angular -G angulargroup
 USER angular
 WORKDIR /usr/app
