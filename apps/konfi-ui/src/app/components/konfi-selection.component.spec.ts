@@ -9,11 +9,11 @@ import { createMockWebSocketConnectingService } from '../../test-utils/mocks';
 describe('KonfiSelectionComponent', () => {
   let component: KonfiSelectionComponent;
   let fixture: ComponentFixture<KonfiSelectionComponent>;
-  let mockWebSocketService: any;
+  let mockWebSocketService: ReturnType<typeof createMockWebSocketConnectingService>['service'];
   let nameService: NameService;
 
   beforeEach(async () => {
-    const { service: mockWebSocket, mocks } =
+    const { service: mockWebSocket } =
       createMockWebSocketConnectingService();
     mockWebSocketService = mockWebSocket;
 

@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PLATFORM_ID, NO_ERRORS_SCHEMA } from '@angular/core';
 import { Clipboard } from '@angular/cdk/clipboard';
-import { of, Subject } from 'rxjs';
+import { Subject } from 'rxjs';
 import { TableAdminComponent } from './table-admin.component';
 import { NameService } from '../services/name.service';
 import {
@@ -29,13 +29,12 @@ jest.mock('@primeuix/themes', () => ({
 describe('TableAdminComponent', () => {
   let component: TableAdminComponent;
   let fixture: ComponentFixture<TableAdminComponent>;
-  let mockWebSocketService: any;
-  let mockClipboard: any;
-  let nameService: NameService;
+  let mockWebSocketService: ReturnType<typeof createMockWebSocketConnectingService>['service'];
+  let mockClipboard: ReturnType<typeof createMockClipboard>['clipboard'];
 
   beforeEach(async () => {
     const { service: mockWebSocket } = createMockWebSocketConnectingService();
-    const { clipboard, mocks } = createMockClipboard();
+    const { clipboard } = createMockClipboard();
     mockWebSocketService = mockWebSocket;
     mockClipboard = clipboard;
 
@@ -59,7 +58,7 @@ describe('TableAdminComponent', () => {
 
     fixture = TestBed.createComponent(TableAdminComponent);
     component = fixture.componentInstance;
-    nameService = TestBed.inject(NameService);
+    TestBed.inject(NameService);
 
     // Set up default values
     fixture.componentRef.setInput('id', 'test-table-123');

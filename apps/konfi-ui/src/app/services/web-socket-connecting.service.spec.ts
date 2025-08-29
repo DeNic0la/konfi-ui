@@ -35,7 +35,12 @@ jest.mock('sockjs-client', () => jest.fn());
 
 describe('WebSocketConnectingService', () => {
   let service: WebSocketConnectingService | null;
-  let mockRxStomp: any;
+  let mockRxStomp: {
+    configure: jest.Mock;
+    activate: jest.Mock;
+    watch: jest.Mock;
+    publish: jest.Mock;
+  };
 
   beforeEach(() => {
     // Reset mocks
@@ -77,10 +82,10 @@ describe('WebSocketConnectingService', () => {
         user: 'testUser',
       };
 
-      const messageSubject = new Subject<any>();
+      const messageSubject = new Subject<{ body: string }>();
       mockRxStomp.watch.mockReturnValue(messageSubject);
 
-      service!.observeTable('testTable').subscribe((result) => {
+      service?.observeTable('testTable').subscribe((result) => {
         expect(result).toEqual(mockTableMessage);
         done();
       });
@@ -90,13 +95,13 @@ describe('WebSocketConnectingService', () => {
     });
 
     it('should handle invalid message format gracefully', (done) => {
-      const messageSubject = new Subject<any>();
+      const messageSubject = new Subject<{ body: string }>();
       mockRxStomp.watch.mockReturnValue(messageSubject);
 
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
       const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
 
-      service!.observeTable('testTable').subscribe((result) => {
+      service?.observeTable('testTable').subscribe((result) => {
         expect(result).toBeNull();
         expect(consoleSpy).toHaveBeenCalledWith(
           'Invalid message format:',
@@ -114,7 +119,7 @@ describe('WebSocketConnectingService', () => {
     });
 
     it('should join table correctly', () => {
-      service!.joinTable('testTable', 'testUser');
+      service?.joinTable('testTable', 'testUser');
 
       expect(mockRxStomp.publish).toHaveBeenCalledWith({
         destination: '/live/join/testTable',
@@ -126,7 +131,7 @@ describe('WebSocketConnectingService', () => {
     });
 
     it('should update konfi vote correctly', () => {
-      service!.updateKonfiVote('testTable', 'testUser', 4);
+      service?.updateKonfiVote('testTable', 'testUser', 4);
 
       expect(mockRxStomp.publish).toHaveBeenCalledWith({
         destination: '/live/update/testTable',
@@ -140,13 +145,13 @@ describe('WebSocketConnectingService', () => {
 
     it('should validate konfi vote is integer', () => {
       expect(() => {
-        service!.updateKonfiVote('testTable', 'testUser', 4.5);
+        service?.updateKonfiVote('testTable', 'testUser', 4.5);
       }).toThrow();
     });
 
     it('should observe topic correctly', () => {
       const mockTopic = '/test/topic';
-      service!.observeTopic(mockTopic);
+      service?.observeTopic(mockTopic);
 
       expect(mockRxStomp.watch).toHaveBeenCalledWith(mockTopic);
     });
@@ -155,7 +160,7 @@ describe('WebSocketConnectingService', () => {
       const destination = '/test/destination';
       const body = 'test message';
 
-      service!.publish(destination, body);
+      service?.publish(destination, body);
 
       expect(mockRxStomp.publish).toHaveBeenCalledWith({
         destination,

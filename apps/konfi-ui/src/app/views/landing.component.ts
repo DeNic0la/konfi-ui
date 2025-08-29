@@ -6,7 +6,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Card } from 'primeng/card';
-import {Button, ButtonDirective} from 'primeng/button';
+import {ButtonDirective} from 'primeng/button';
 
 @Component({
   selector: 'app-landing',

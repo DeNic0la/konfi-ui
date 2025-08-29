@@ -1,7 +1,4 @@
 import { Route } from '@angular/router';
-import { NxWelcome } from './nx-welcome';
-import { TableComponent } from './views/table.component';
-import { NameInputComponent } from './components/name-input.component';
 
 export const appRoutes: Route[] = [
   {

@@ -80,7 +80,7 @@ export const createMockClipboard = () => {
 export const createTestSubject = <T>() => {
   const subject = new Subject<T>();
   const values: T[] = [];
-  const errors: any[] = [];
+  const errors: unknown[] = [];
   let completed = false;
 
   const subscription = subject.subscribe({

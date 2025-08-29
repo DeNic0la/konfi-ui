@@ -1,8 +1,6 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  inject,
-  input,
   Input,
   Output,
   ViewEncapsulation,
@@ -10,7 +8,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FloatLabelModule } from 'primeng/floatlabel';
 import { InputText } from 'primeng/inputtext';
-import { ControlValueAccessor, FormsModule } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { ButtonDirective, ButtonIcon, ButtonLabel } from 'primeng/button';
 import { StyleClass } from 'primeng/styleclass';
 import {
@@ -18,7 +16,6 @@ import {
   debounceTime,
   distinctUntilChanged,
   NEVER,
-  ReplaySubject,
   shareReplay,
   Subject,
   map,
