@@ -1,4 +1,4 @@
-import { inject, Injectable, InjectionToken, PLATFORM_ID } from '@angular/core';
+import { inject, Injectable, PLATFORM_ID } from '@angular/core';
 import SockJS from 'sockjs-client';
 import { isPlatformBrowser } from '@angular/common';
 import { Client } from '@stomp/stompjs';
@@ -22,7 +22,7 @@ const backendUrlFactory = () => {
 };
 
 const webSocketJsFactory = () => {
-  return new SockJS(`${environment.backendUrl}/sockJs`);
+  return new SockJS(`${environment.backendUrl}sockJs`);
 };
 
 export type ZodTableMessage = z.infer<typeof TableMessage>;
@@ -45,7 +45,7 @@ export class WebSocketConnectingService {
     heartbeatIncoming: 4000,
     heartbeatOutgoing: 4000,
   });
-  private bindable(callback: any) {
+  private bindable(callback: (isConnected: boolean, error: unknown) => void) {
     this.client.onStompError = callback.bind(this, false);
     this.client.onWebSocketClose = callback.bind(this, false);
     this.client.onConnect = callback.bind(this, true);
@@ -54,7 +54,7 @@ export class WebSocketConnectingService {
   private readonly onClientConnected$ = bindCallback(
     this.bindable.bind(this)
   )().pipe(
-    map((isConnected, data) => {
+    map((isConnected) => {
       return isConnected;
     }),
     shareReplay({ refCount: true, bufferSize: 1 })
@@ -68,7 +68,7 @@ export class WebSocketConnectingService {
 
       this.rxStompClient.configure({
         webSocketFactory: webSocketJsFactory,
-        brokerURL: `${environment.backendUrl}/sockJs`,
+        brokerURL: `${environment.backendUrl}sockJs`,
       });
     } else {
       this.rxStompClient.configure({

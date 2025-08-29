@@ -12,7 +12,15 @@ export default {
       },
     ],
   },
-  transformIgnorePatterns: ['node_modules/(?!.*\\.mjs$)'],
+  transformIgnorePatterns: [
+    'node_modules/(?!.*\\.mjs$|@stomp/.*|sockjs-client/.*|@primeuix/.*|@ngrx/.*)',
+  ],
+  moduleNameMapper: {
+    '^@stomp/rx-stomp$':
+      '<rootDir>/src/test-utils/__mocks__/@stomp/rx-stomp.js',
+    '^@stomp/stompjs$': '<rootDir>/src/test-utils/__mocks__/@stomp/stompjs.js',
+    '^sockjs-client$': '<rootDir>/src/test-utils/__mocks__/sockjs-client.js',
+  },
   snapshotSerializers: [
     'jest-preset-angular/build/serializers/no-ng-attributes',
     'jest-preset-angular/build/serializers/ng-snapshot',

@@ -1,0 +1,161 @@
+<div class="brunch-create-container">
+
+  <div class="brunch-create-header">
+    <h1 class="brunch-create-title">
+      <i class="pi pi-plus-circle mr-2"></i>
+      Neuen Brunch erstellen
+    </h1>
+    <p class="brunch-create-subtitle">
+      Erstelle einen neuen Brunch-Tisch für deine Gäste
+    </p>
+  </div>
+
+  <div class="brunch-create-content">
+    <p-card class="brunch-create-card">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="brunch-create-form">
+        <!-- Basic Information Section -->
+        <div class="form-section">
+          <h3 class="section-title">
+            <i class="pi pi-info-circle mr-2"></i>
+            Grundinformationen
+          </h3>
+
+          <div class="form-row">
+            <div class="form-field">
+              <p-floatlabel>
+                <input
+                  pInputText
+                  id="title"
+                  formControlName="title"
+                  [invalid]="isInvalid('title')"
+                  class="w-full"
+                  autocomplete="off"
+                  aria-describedby="title-help" />
+                <label for="title">Brunch Name *</label>
+              </p-floatlabel>
+              <small id="title-help" class="form-help">
+                Gib deinem Brunch einen aussagekräftigen Namen
+              </small>
+              <div class="form-error" *ngIf="isInvalid('title')">
+                <i class="pi pi-exclamation-triangle mr-1"></i>
+                Bitte gib einen Namen für den Brunch ein
+              </div>
+            </div>
+
+            <div class="form-field">
+              <p-floatlabel>
+                <input
+                  pInputText
+                  id="id"
+                  formControlName="id"
+                  [invalid]="isInvalid('id')"
+                  [pKeyFilter]="idRegexp"
+                  class="w-full"
+                  minlength="3"
+                  maxlength="50"
+                  autocomplete="off"
+                  aria-describedby="id-help" />
+                <label for="id">Brunch ID *</label>
+              </p-floatlabel>
+              <small id="id-help" class="form-help">
+                Wird automatisch aus dem Namen generiert (nur Buchstaben, Zahlen und Bindestriche)
+              </small>
+              <div class="form-error" *ngIf="isInvalid('id')">
+                <i class="pi pi-exclamation-triangle mr-1"></i>
+                ID muss mindestens 3 Zeichen lang sein
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Security Section -->
+        <div class="form-section">
+          <h3 class="section-title">
+            <i class="pi pi-shield mr-2"></i>
+            Sicherheitseinstellungen
+          </h3>
+          <p class="section-description">
+            Beide Passwörter sind optional. Lasse sie leer, wenn jeder teilnehmen können soll.
+          </p>
+
+          <div class="form-row">
+            <div class="form-field">
+              <p-floatlabel>
+                <p-password
+                  formControlName="votingPassword"
+                  [feedback]="false"
+                  [toggleMask]="true"
+                  inputId="vote_password"
+                  aria-describedby="vote-password-help" />
+                <label for="vote_password">Abstimmungs-Passwort</label>
+              </p-floatlabel>
+              <small id="vote-password-help" class="form-help">
+                Passwort für Teilnehmer zum Abstimmen (optional)
+              </small>
+            </div>
+
+            <div class="form-field">
+              <p-floatlabel>
+                <p-password
+                  formControlName="adminPassword"
+                  [feedback]="false"
+                  [toggleMask]="true"
+                  inputId="admin_password"
+                  aria-describedby="admin-password-help" />
+                <label for="admin_password">Admin-Passwort</label>
+              </p-floatlabel>
+              <small id="admin-password-help" class="form-help">
+                Passwort für Admin-Zugriff (optional)
+              </small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Question Section -->
+        <div class="form-section">
+          <h3 class="section-title">
+            <i class="pi pi-question-circle mr-2"></i>
+            Abstimmungsfrage
+          </h3>
+
+          <div class="form-field">
+            <p-floatlabel>
+              <input
+                pInputText
+                id="question"
+                formControlName="question"
+                class="w-full"
+                [invalid]="isInvalid('question')"
+                minlength="3"
+                maxlength="50"
+                autocomplete="off"
+                aria-describedby="question-help" />
+              <label for="question">Abstimmungsfrage *</label>
+            </p-floatlabel>
+            <small id="question-help" class="form-help">
+              z.B. "Wie viele Personen kommen zu unserem Brunch?"
+            </small>
+            <div class="form-error" *ngIf="isInvalid('question')">
+              <i class="pi pi-exclamation-triangle mr-1"></i>
+              Bitte gib eine Abstimmungsfrage ein
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions">
+          <p-button
+            label="Brunch erstellen"
+            type="submit"
+            icon="pi pi-plus"
+            [disabled]="form.invalid || isSubmitting"
+            [loading]="isSubmitting"
+            loadingIcon="pi pi-spinner"
+            severity="success"
+            size="large"
+            styleClass="submit-button" />
+        </div>
+      </form>
+    </p-card>
+  </div>
+</div>
