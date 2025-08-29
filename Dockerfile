@@ -1,4 +1,4 @@
-FROM node:20.13.1-alpine3.19 as build
+FROM node:20.13.1-alpine3.19 AS build
 RUN npm i -g pnpm@8.5.1
 WORKDIR /app/src
 ENV NX_DAEMON=false
@@ -8,7 +8,7 @@ COPY . ./
 RUN pnpm exec nx run konfi-ui:build:production
 
 FROM node:20.13.1-alpine3.19
-ADD /dist/apps/konfi-ui ./usr/app
+COPY --from=build /dist/apps/konfi-ui ./usr/app
 RUN addgroup -S angulargroup && adduser -S angular -G angulargroup
 USER angular
 WORKDIR /usr/app
