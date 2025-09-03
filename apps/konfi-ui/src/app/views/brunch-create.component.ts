@@ -5,17 +5,18 @@ import {
   OnInit,
   ViewEncapsulation,
   OnDestroy,
+  signal,
+  computed
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Card } from 'primeng/card';
-import { FloatLabel } from 'primeng/floatlabel';
-import { InputText } from 'primeng/inputtext';
 import {
   FormBuilder,
   FormsModule,
   ReactiveFormsModule,
   Validators,
+  FormArray,
 } from '@angular/forms';
 import {
   debounceTime,
@@ -26,23 +27,152 @@ import {
 import { KeyFilter } from 'primeng/keyfilter';
 import { Password } from 'primeng/password';
 import { Button } from 'primeng/button';
-import { BrunchCreateService } from '../services/brunch-create.service';
+import { Tabs, TabList, Tab, TabPanels, TabPanel } from 'primeng/tabs';
+import { Checkbox } from 'primeng/checkbox';
+import { Panel } from 'primeng/panel';
+import { InputText } from 'primeng/inputtext';
+import { Textarea } from 'primeng/textarea';
+import { BrunchApiService } from '../services/brunch-api.service';
+import { QuestionManagementService } from '../services/question-management.service';
+import { AuthService } from '../services/auth.service';
+import { 
+  BrunchFormModel, 
+  QuestionFormModel, 
+  BrunchCreateRequest,
+  QUESTION_TYPE_OPTIONS
+} from '../types/api.types';
+import { BrunchFormModelSchema } from '../zod/api.schemas';
+import { QuestionManagementComponent } from '../components/question-management.component';
+import { BrunchPreviewComponent } from '../components/brunch-preview.component';
 
 @Component({
   selector: 'app-brunch-create',
   imports: [
     CommonModule,
     Card,
-    FloatLabel,
-    InputText,
     FormsModule,
     ReactiveFormsModule,
     KeyFilter,
     Password,
     Button,
+    Tabs,
+    TabList,
+    Tab,
+    TabPanels,
+    TabPanel,
+    Checkbox,
+    Panel,
+    InputText,
+    Textarea,
+    QuestionManagementComponent,
+    BrunchPreviewComponent,
   ],
   templateUrl: './brunch-create.component.html',
   styles: `
+    /* Custom Tabs Styles */
+    .custom-tabs :host ::ng-deep {
+      .p-tablist {
+        background: transparent;
+        border-bottom: 1px solid var(--surface-border);
+      }
+      
+      .p-tab {
+        background: transparent;
+        border: none;
+        border-bottom: 3px solid transparent;
+        color: var(--text-color-secondary);
+        padding: 1rem 1.5rem;
+        transition: all 0.2s ease;
+        cursor: pointer;
+      }
+      
+      .p-tab.p-tab-active {
+        border-bottom-color: var(--primary-color);
+        color: var(--primary-color);
+        background: transparent;
+      }
+      
+      .p-tab:not(.p-tab-active):not(.p-disabled):hover {
+        color: var(--text-color);
+        background: var(--surface-hover);
+      }
+      
+      .p-tabpanels {
+        background: transparent;
+        padding: 1.5rem 0;
+      }
+    }
+    
+    .tab-content {
+      min-height: 400px;
+    }
+    
+    .preview-sidebar {
+      max-height: 80vh;
+    }
+    
+    .sticky-top {
+      position: sticky;
+      top: 1rem;
+    }
+    
+    .preview-card {
+      border: 1px solid var(--surface-border);
+    }
+    
+    .quick-preview-content {
+      .stat-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        
+        .stat-label {
+          color: var(--text-color-secondary);
+          font-size: 0.875rem;
+        }
+        
+        .stat-value {
+          font-weight: 600;
+          color: var(--text-color);
+        }
+      }
+    }
+    
+    .form-actions {
+      border-top: 1px solid var(--surface-border);
+      padding-top: 1.5rem;
+    }
+    
+    .tab-navigation {
+      min-width: 80px;
+    }
+    
+    /* Form Field Styling */
+    .form-field {
+      margin-bottom: 1rem;
+    }
+    
+    .form-field label {
+      font-weight: 500;
+      color: var(--text-color);
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 1024px) {
+      .preview-sidebar {
+        display: none;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .custom-tabview :host ::ng-deep {
+        .p-tabview-nav li .p-tabview-nav-link {
+          padding: 0.75rem 1rem;
+          font-size: 0.875rem;
+        }
+      }
+    }
+
     :host {
       display: block;
       min-height: 100vh;
@@ -51,22 +181,9 @@ import { BrunchCreateService } from '../services/brunch-create.service';
     }
 
     .brunch-create-container {
-      max-width: 800px;
+      max-width: 1200px;
       margin: 0 auto;
       padding: 2rem 0;
-    }
-
-    .brunch-create-navigation {
-      margin-bottom: 1rem;
-    }
-
-    .back-button {
-      color: rgba(255, 255, 255, 0.9) !important;
-    }
-
-    .back-button:hover {
-      color: white !important;
-      background-color: rgba(255, 255, 255, 0.1) !important;
     }
 
     .brunch-create-header {
@@ -100,176 +217,7 @@ import { BrunchCreateService } from '../services/brunch-create.service';
     }
 
     .brunch-create-card .p-card-body {
-      padding: 3rem;
-    }
-
-    .brunch-create-form {
-      max-width: none;
-    }
-
-    .form-section {
-      margin-bottom: 2.5rem;
-    }
-
-    .form-section:last-child {
-      margin-bottom: 0;
-    }
-
-    .section-title {
-      font-size: 1.3rem;
-      font-weight: 600;
-      color: #2c3e50;
-      margin: 0 0 0.5rem 0;
-      display: flex;
-      align-items: center;
-    }
-
-    .section-title i {
-      color: #667eea;
-      font-size: 1.2rem;
-    }
-
-    .section-description {
-      color: #6c757d;
-      margin: 0 0 1.5rem 0;
-      font-size: 0.95rem;
-      line-height: 1.5;
-    }
-
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.5rem;
-      margin-bottom: 1rem;
-      margin-top: 1.5rem;
-
-    }
-
-    .form-field {
-      position: relative;
-    }
-
-    .form-field .p-floatlabel {
-      margin-bottom: 0.5rem;
-    }
-
-    .form-field input,
-    .form-field .p-password .p-password-input {
-      font-size: 1rem;
-      border-radius: 8px;
-      border: 2px solid #e9ecef;
-      padding: 0.75rem 1rem;
-      transition: all 0.3s ease;
-      width: 100%;
-    }
-
-    .form-field .p-password {
-      width: 100%;
-    }
-
-    .form-field input:focus,
-    .form-field .p-password .p-password-input:focus {
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-
-    .form-field input.ng-invalid.ng-touched,
-    .form-field .p-password.ng-invalid.ng-touched .p-password-input {
-      border-color: #e74c3c;
-    }
-
-    .form-field label {
-      font-weight: 500;
-      color: #495057;
-    }
-
-    .form-help {
-      color: #6c757d;
-      font-size: 0.875rem;
-      line-height: 1.4;
-      margin-top: 0.25rem;
-      display: block;
-    }
-
-    .form-error {
-      color: #e74c3c;
-      font-size: 0.875rem;
-      margin-top: 0.25rem;
-      display: flex;
-      align-items: center;
-      animation: fadeIn 0.3s ease-in;
-    }
-
-    .form-error i {
-      font-size: 0.75rem;
-    }
-
-    .form-actions {
-      margin-top: 2rem;
-      text-align: center;
-    }
-
-    .submit-button {
-      min-width: 200px;
-      padding: 0.75rem 2rem;
-      font-size: 1.1rem;
-      font-weight: 600;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-      transition: all 0.3s ease;
-    }
-
-    .submit-button:hover:not([disabled]) {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-    }
-
-    .submit-button[disabled] {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    /* Responsive Design */
-    @media (max-width: 768px) {
-      :host {
-        padding: 0.5rem;
-      }
-
-      .brunch-create-container {
-        padding: 1rem 0;
-      }
-
-      .brunch-create-title {
-        font-size: 2rem;
-      }
-
-      .brunch-create-card .p-card-body {
-        padding: 2rem;
-      }
-
-      .form-row {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-      }
-
-      .section-title {
-        font-size: 1.2rem;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .brunch-create-title {
-        font-size: 1.8rem;
-      }
-
-      .brunch-create-card .p-card-body {
-        padding: 1.5rem;
-      }
-
-      .submit-button {
-        width: 100%;
-        min-width: auto;
-      }
+      padding: 2rem;
     }
 
     /* Animations */
@@ -284,158 +232,284 @@ import { BrunchCreateService } from '../services/brunch-create.service';
       }
     }
 
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateX(-10px);
+    @media (max-width: 768px) {
+      :host {
+        padding: 0.5rem;
       }
-      to {
-        opacity: 1;
-        transform: translateX(0);
+
+      .brunch-create-container {
+        padding: 1rem 0;
+      }
+
+      .brunch-create-title {
+        font-size: 2rem;
+      }
+
+      .brunch-create-card .p-card-body {
+        padding: 1.5rem;
       }
     }
 
-    /* PrimeNG Component Overrides */
-    .p-floatlabel {
-      position: relative;
-    }
+    @media (max-width: 480px) {
+      .brunch-create-title {
+        font-size: 1.8rem;
+      }
 
-    .p-floatlabel label {
-      position: absolute;
-      top: 50%;
-      left: 0.75rem;
-      transform: translateY(-50%);
-      transition: all 0.2s ease;
-      pointer-events: none;
-      font-size: 1rem;
-      color: #6c757d;
-      font-weight: 400;
-      z-index: 1;
-    }
-
-
-    .p-floatlabel input:focus ~ label {
-      color: #667eea;
-    }
-
-    .p-floatlabel input.ng-invalid.ng-touched ~ label {
-      color: #e74c3c;
-    }
-
-    .p-password {
-      display: block;
-    }
-
-    .p-password .p-password-input {
-      width: 100% !important;
-      box-sizing: border-box;
-    }
-
-    .p-password .p-password-toggle {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      color: #6c757d;
-      cursor: pointer;
-      padding: 0;
-      width: 20px;
-      height: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .p-password .p-password-toggle:hover {
-      color: #495057;
-    }
-
-    .p-button.p-button-loading .p-button-icon {
-      margin-right: 0.5rem;
+      .brunch-create-card .p-card-body {
+        padding: 1rem;
+      }
     }
   `,
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BrunchCreateComponent implements OnInit, OnDestroy {
-  private readonly bcs = inject(BrunchCreateService);
+  private readonly brunchApiService = inject(BrunchApiService);
+  private readonly questionManagementService = inject(QuestionManagementService);
+  private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
-  private sub: Subscription = new Subscription();
-  public readonly idRegexp = /^[a-zA-Z0-9-]+$/;
-  public isSubmitting = false;
-
-  ngOnInit(): void {
-    const s = this.form.controls.title.valueChanges
-      .pipe(
-        filter(
-          (value): value is string =>
-            typeof value === 'string' && value?.trim()?.length > 0
-        ),
-        debounceTime(300),
-        map((input) => input.trim().replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '').toLowerCase())
-      )
-      .subscribe({ next: (value) => this.form.controls.id.patchValue(value) });
-    this.sub.add(s);
-  }
-
   private readonly fb = inject(FormBuilder);
-  public readonly form = this.fb.group({
-    title: this.fb.control('', [Validators.required, Validators.minLength(2)]),
+  private sub: Subscription = new Subscription();
+  
+  // Form validation regex
+  public readonly idRegexp = /^[a-zA-Z0-9-]+$/;
+  
+  // UI State
+  public activeTabValue = 'basic';
+  public isSubmitting = false;
+  public previewMode: 'mobile' | 'desktop' = 'desktop';
+  
+  // Form Data
+  public questions: QuestionFormModel[] = [];
+  
+  // Main brunch form
+  public readonly brunchForm = this.fb.group({
+    name: this.fb.control('', [Validators.required, Validators.minLength(2), Validators.maxLength(200)]),
+    description: this.fb.control('', [Validators.maxLength(1000)]),
     id: this.fb.control('', [
       Validators.required,
       Validators.minLength(3),
-      Validators.pattern('^[a-zA-Z0-9-]+$'),
       Validators.maxLength(50),
+      Validators.pattern(/^[a-zA-Z0-9-]+$/)
     ]),
+    adminPassword: this.fb.control('', [Validators.required, Validators.minLength(1)]),
     votingPassword: this.fb.control(''),
-    adminPassword: this.fb.control(''),
-    question: this.fb.control('', [Validators.required, Validators.minLength(5)]),
+    hasVotingPassword: this.fb.control(false),
+    requireEmail: this.fb.control(false)
   });
 
-  isInvalid(controlName: string) {
-    const control = this.form.get(controlName);
-    return control?.invalid && (control.touched || control.dirty);
+  ngOnInit(): void {
+    this.setupFormSubscriptions();
+    this.initializeDefaultQuestion();
   }
 
-  onSubmit() {
-    if (this.form.invalid) {
+  private setupFormSubscriptions(): void {
+    // Auto-generate ID from name
+    const nameToIdSubscription = this.brunchForm.get('name')!.valueChanges
+      .pipe(
+        filter((value): value is string => typeof value === 'string' && value?.trim()?.length > 0),
+        debounceTime(300),
+        map(name => this.brunchApiService.sanitizeBrunchId(name))
+      )
+      .subscribe(id => {
+        this.brunchForm.get('id')?.patchValue(id, { emitEvent: false });
+      });
+    
+    this.sub.add(nameToIdSubscription);
+
+    // Clear voting password when hasVotingPassword is unchecked
+    const votingPasswordToggleSubscription = this.brunchForm.get('hasVotingPassword')!.valueChanges
+      .subscribe(hasPassword => {
+        if (!hasPassword) {
+          this.brunchForm.get('votingPassword')?.patchValue('');
+        }
+      });
+    
+    this.sub.add(votingPasswordToggleSubscription);
+  }
+
+  private initializeDefaultQuestion(): void {
+    // Add a default rating question
+    const defaultQuestion = this.questionManagementService.createEmptyQuestion('rating');
+    defaultQuestion.text = 'How confident are you in this project?';
+    defaultQuestion.config = {
+      minRating: 1,
+      maxRating: 5
+    };
+    this.questions = [defaultQuestion];
+  }
+
+  // Form validation helpers
+  isFieldInvalid(fieldName: string): boolean {
+    const field = this.brunchForm.get(fieldName);
+    return !!(field?.invalid && (field.touched || field.dirty));
+  }
+
+  canProceedToNextTab(): boolean {
+    switch (this.activeTabValue) {
+      case 'basic': // Basic Information
+        return !!(this.brunchForm.get('name')?.valid && this.brunchForm.get('id')?.valid);
+      case 'security': // Security Settings
+        return !!(this.brunchForm.get('adminPassword')?.valid);
+      case 'questions': // Questions
+        return this.questions.length > 0 && this.questions.every(q => 
+          this.questionManagementService.validateQuestion(q).success
+        );
+      case 'preview': // Preview
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  // Tab navigation
+  nextTab(): void {
+    const tabs = ['basic', 'security', 'questions', 'preview'];
+    const currentIndex = tabs.indexOf(this.activeTabValue);
+    if (currentIndex < tabs.length - 1 && this.canProceedToNextTab()) {
+      this.activeTabValue = tabs[currentIndex + 1];
+    }
+  }
+
+  previousTab(): void {
+    const tabs = ['basic', 'security', 'questions', 'preview'];
+    const currentIndex = tabs.indexOf(this.activeTabValue);
+    if (currentIndex > 0) {
+      this.activeTabValue = tabs[currentIndex - 1];
+    }
+  }
+
+  goToPreviewTab(): void {
+    this.activeTabValue = 'preview';
+  }
+
+  // Question management
+  onQuestionsChange(questions: QuestionFormModel[]): void {
+    this.questions = questions;
+  }
+
+  // Preview functionality
+  getBrunchPreviewData() {
+    return {
+      name: this.brunchForm.get('name')?.value || 'Untitled Brunch',
+      description: this.brunchForm.get('description')?.value || undefined,
+      questions: this.questions,
+      hasVotingPassword: !!this.brunchForm.get('hasVotingPassword')?.value,
+      requireEmail: !!this.brunchForm.get('requireEmail')?.value
+    };
+  }
+
+  onPreviewModeChange(mode: 'mobile' | 'desktop'): void {
+    this.previewMode = mode;
+  }
+
+  getSecurityLevel(): string {
+    const hasAdmin = !!this.brunchForm.get('adminPassword')?.value;
+    const hasVoting = this.brunchForm.get('hasVotingPassword')?.value;
+    
+    if (hasAdmin && hasVoting) return 'High';
+    if (hasAdmin) return 'Medium';
+    return 'Basic';
+  }
+
+  // Import/Export functionality
+  importQuestions(): void {
+    // TODO: Implement question import
+    console.log('Import questions functionality to be implemented');
+  }
+
+  exportQuestions(): void {
+    if (this.questions.length > 0) {
+      const exported = this.questionManagementService.exportQuestions(this.questions);
+      this.downloadAsFile(exported, 'brunch-questions.json', 'application/json');
+    }
+  }
+
+  private downloadAsFile(content: string, filename: string, mimeType: string): void {
+    const blob = new Blob([content], { type: mimeType });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }
+
+  // Form submission
+  onSubmit(): void {
+    if (this.brunchForm.invalid) {
       this.markAllFieldsAsTouched();
+      this.activeTabValue = 'basic'; // Go to first tab with errors
+      return;
+    }
+
+    if (this.questions.length === 0) {
+      this.activeTabValue = 'questions'; // Go to questions tab
+      return;
+    }
+
+    // Validate all questions
+    const questionsValidation = this.questionManagementService.validateQuestionList(this.questions);
+    if (!questionsValidation.success) {
+      this.activeTabValue = 'questions'; // Go to questions tab
       return;
     }
 
     this.isSubmitting = true;
-    const subscr = this.bcs
-      .send(this.form.value)
-      .subscribe({
-        next: (value) => {
-          console.log('Brunch created successfully:', value);
-          this.isSubmitting = false;
 
-          // Navigate to admin page with the created brunch ID
-          const brunchId = this.form.value.id;
-          if (brunchId) {
-            this.router.navigate(['/table/admin', brunchId])
+    try {
+      // Transform form data to API request
+      const brunchRequest: BrunchCreateRequest = this.brunchApiService.transformFormToBrunchRequest({
+        name: this.brunchForm.get('name')?.value,
+        description: this.brunchForm.get('description')?.value,
+        adminPassword: this.brunchForm.get('adminPassword')?.value,
+        votingPassword: this.brunchForm.get('hasVotingPassword')?.value ? this.brunchForm.get('votingPassword')?.value : undefined,
+        hasVotingPassword: this.brunchForm.get('hasVotingPassword')?.value,
+        questions: this.questions
+      });
+
+      const createSubscription = this.brunchApiService.createBrunch(brunchRequest)
+        .subscribe({
+          next: (brunchInfo) => {
+            console.log('Brunch created successfully:', brunchInfo);
+            
+            // Store admin password for future use
+            this.authService.setAdminPassword(brunchInfo.id, brunchRequest.adminPassword);
+            
+            // Store voting password if provided
+            if (brunchRequest.votingPassword) {
+              this.authService.setVotingPassword(brunchInfo.id, brunchRequest.votingPassword);
+            }
+            
+            this.isSubmitting = false;
+
+            // Navigate to admin page
+            this.router.navigate(['/table/admin', brunchInfo.id])
               .then(() => console.log('Navigated to admin page'))
               .catch(err => console.error('Navigation error:', err));
+          },
+          error: (error) => {
+            console.error('Error creating brunch:', error);
+            this.isSubmitting = false;
+            // TODO: Show user-friendly error message
           }
-        },
-        error: (error) => {
-          console.error('Error creating brunch:', error);
-          this.isSubmitting = false;
-          // TODO: Show error message to user with toast or inline message
-        }
-      });
-    this.sub.add(subscr);
+        });
+
+      this.sub.add(createSubscription);
+    } catch (error) {
+      console.error('Form validation error:', error);
+      this.isSubmitting = false;
+      // TODO: Show validation error to user
+    }
   }
 
-  private markAllFieldsAsTouched() {
-    Object.keys(this.form.controls).forEach(key => {
-      this.form.get(key)?.markAsTouched();
+  private markAllFieldsAsTouched(): void {
+    Object.keys(this.brunchForm.controls).forEach(key => {
+      this.brunchForm.get(key)?.markAsTouched();
     });
   }
-
 
   ngOnDestroy(): void {
     this.sub.unsubscribe();
