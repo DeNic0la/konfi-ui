@@ -1,68 +1,254 @@
-<div class="grid p-2 h-full w-full">
-  <div class="col-4">
-    <p-card header="Am Tisch dabei sind" class="h-full w-full">
-      <div class="flex flex-column h-full w-full gap-3">
-        @for (user of users$ | async; track user) {
-        <p-chip label="{{ user }}"></p-chip>
-        }
-      </div>
-    </p-card>
-  </div>
-  <div class="col-3">
-    <p-card header="Join" class="w-full h-full">
-      @defer (on idle){
-      <qr-code
-        [value]="joinUrl()"
-        size="500"
-        [darkColor]="primaryColor.value"
-        [lightColor]="surfaceColor.value"
-        styleClass="w-full h-auto"
-      ></qr-code>
-      <div
-        class="flex flex-column justify-content-center align-items-center mt-3"
-      >
-        @if (showCopyCheck$ | async){
-        <p-button
-          icon="pi pi-check"
-          label="Copy: {{ joinUrl() }}"
-          variant="outlined"
-          (click)="copyLink()"
-          (onClick)="copyLink()"
-          (keydown.enter)="copyLink()"
-        ></p-button>
-        } @else {
-        <p-button
-          label="Copy: {{ joinUrl() }}"
-          variant="outlined"
-          (click)="copyLink()"
-          (onClick)="copyLink()"
-          (keydown.enter)="copyLink()"
-        ></p-button>
-        }
-      </div>
+<div class="h-full w-full relative overflow-hidden" role="main" aria-label="Table Administration Dashboard">
+  <p-toast position="top-center" [breakpoints]="{'920px': {width: '100%', right: '0', left: '0'}}"
+           role="alert" aria-live="polite"></p-toast>
 
-      } @placeholder (minimum 10ms){
-      <div class="w-full h-3 block">...</div>
-      }
-    </p-card>
-  </div>
-  <div class="col-5">
-    <p-card header="Durchschnitt" class="w-full h-full">
-      <h1 class="avg">{{ avg$ | async }}</h1>
-    </p-card>
-  </div>
-  <div class="grid">
-    <div class="col-10 col-offset-1">
-      <apx-chart
-        id="chart"
-        [dataLabels]="chartOptions.dataLabels"
-        [series]="(series$ | async) || []"
-        [chart]="chartOptions.chart"
-        [xaxis]="chartOptions.xaxis"
-        [yaxis]="chartOptions.yaxis"
-        [title]="chartOptions.title"
-        [responsive]="chartOptions.responsive"
-      ></apx-chart>
+  <!-- Screen Reader Skip Navigation -->
+  <a href="#main-content" class="sr-only">Skip to main content</a>
+
+  <!-- Connection Status Header (Minimal) -->
+  @if (connectionStatus() === 'disconnected') {
+    <div class="fixed top-0 right-0 m-2 z-5" role="status" aria-live="polite">
+      <p-chip label="Offline"
+              icon="pi pi-wifi-off"
+              class="bg-red-50 text-red-700 text-xs"
+              size="small">
+      </p-chip>
+    </div>
+  }
+
+  <!-- Main Dashboard Grid -->
+  <div class="grid p-2 md:p-4 h-full w-screen overflow-hidden" id="main-content" role="region" aria-label="Dashboard Content">
+
+    <!-- Participants Section -->
+    <div class="col-12 lg:col-4">
+      <p-card class="h-full w-full shadow-1"
+              role="region"
+              aria-labelledby="participants-heading">
+        <ng-template pTemplate="header">
+          <div class="flex justify-content-between align-items-center w-full">
+            <h2 id="participants-heading" class="text-base md:text-lg font-semibold m-0">Teilnehmer</h2>
+            @if (participantCount() > 0) {
+              <p-badge [value]="participantCount().toString()"
+                       severity="success"
+                       size="large"
+                       [attr.aria-label]="participantCount() + ' Teilnehmer aktuell am Tisch'">
+              </p-badge>
+            }
+          </div>
+        </ng-template>
+
+        <div class="flex flex-column gap-2 p-2" role="list"
+             aria-label="List of participants" aria-live="polite">
+          @if (isInitialLoading()) {
+            <!-- Skeleton Loading for Participants -->
+            <div role="status" aria-label="Loading participants">
+              @for (i of [1,2,3]; track i) {
+                <p-skeleton width="100%" height="2rem" borderRadius="1rem"
+                           [attr.aria-label]="'Loading participant ' + i"></p-skeleton>
+              }
+            </div>
+          } @else {
+            @for (user of users$ | async; track user) {
+              <p-chip
+                [label]="user"
+                icon="pi pi-user"
+                class="bg-primary-50 text-primary-800"
+                role="listitem"
+                [attr.aria-label]="'Participant: ' + user">
+              </p-chip>
+            }
+
+            @if ((users$ | async)?.length === 0) {
+              <div class="text-center text-color-secondary py-4" role="status"
+                   aria-label="No participants yet">
+                <i class="pi pi-users text-2xl mb-2 block" aria-hidden="true"></i>
+                <p class="text-sm">Noch keine Teilnehmer</p>
+                <small>Teile den QR-Code oder Link</small>
+              </div>
+            }
+          }
+        </div>
+      </p-card>
+    </div>
+
+    <!-- QR Code Section -->
+    <div class="col-12 md:col-6 lg:col-4">
+      <p-card class="w-full h-full shadow-1" role="region" aria-labelledby="qr-heading">
+        <ng-template pTemplate="header">
+          <h2 id="qr-heading" class="text-base md:text-lg font-semibold m-0">Einladung</h2>
+        </ng-template>
+        @if (isQrLoading()) {
+          <!-- QR Code Loading Skeleton -->
+          <div class="text-center p-3" role="status" aria-label="Loading QR code">
+            <p-skeleton width="160px" height="160px" borderRadius="8px" class="mx-auto mb-3"
+                       aria-label="QR code placeholder"></p-skeleton>
+            <p-skeleton width="80%" height="2rem" borderRadius="1rem" class="mx-auto"
+                       aria-label="Loading QR code details"></p-skeleton>
+          </div>
+        } @else {
+          @defer (on idle) {
+            <div class="text-center p-2">
+              <qr-code
+                [value]="joinUrl()"
+                [size]="200"
+                [darkColor]="primaryColor.value"
+                [lightColor]="surfaceColor.value"
+                class="mx-auto mb-3"
+                role="img"
+                [attr.aria-label]="'QR code for joining table at ' + joinUrl()"
+                alt="QR code to join this table"
+              ></qr-code>
+
+              <div class="flex flex-column gap-2 align-items-center">
+                @if (showCopyCheck$ | async) {
+                  <p-button
+                    icon="pi pi-check"
+                    label="Kopiert!"
+                    variant="outlined"
+                    severity="success"
+                    size="small"
+                    aria-label="Link successfully copied to clipboard"
+                    [disabled]="true">
+                  </p-button>
+                } @else {
+                  <p-button
+                    label="Link kopieren"
+                    icon="pi pi-copy"
+                    variant="outlined"
+                    size="small"
+                    (click)="copyLink()"
+                    aria-label="Copy table invitation link to clipboard">
+                  </p-button>
+                }
+
+                <small class="text-color-secondary text-center px-2 text-xs"
+                       style="word-break: break-all;" role="text">
+                  {{ joinUrl() }}
+                </small>
+              </div>
+            </div>
+          } @placeholder (minimum 100ms) {
+            <div class="text-center p-4">
+              <p-progressSpinner class="w-3rem h-3rem" strokeWidth="4"></p-progressSpinner>
+              <p class="mt-2 text-color-secondary text-sm">Lade QR-Code...</p>
+            </div>
+          }
+        }
+      </p-card>
+    </div>
+
+    <!-- Average Score Section -->
+    <div class="col-12 md:col-6 lg:col-4">
+      <p-card class="w-full h-full shadow-1" role="region" aria-labelledby="average-heading">
+        <ng-template pTemplate="header">
+          <h2 id="average-heading" class="text-base md:text-lg font-semibold m-0">Durchschnitt</h2>
+        </ng-template>
+        @if (isInitialLoading()) {
+          <!-- Average Loading Skeleton -->
+          <div class="text-center p-4" role="status" aria-label="Loading average rating">
+            <p-skeleton width="80px" height="3rem" borderRadius="8px" class="mx-auto mb-2"
+                       aria-label="Average rating placeholder"></p-skeleton>
+            <p-skeleton width="60px" height="1rem" borderRadius="4px" class="mx-auto"
+                       aria-label="Rating details placeholder"></p-skeleton>
+          </div>
+        } @else {
+          <div class="text-center p-3" role="region" aria-live="polite"
+               [attr.aria-label]="'Current average rating: ' + ((avg$ | async) | number:'1.1-1') + ' out of 5 stars'">
+            @if ((avg$ | async) && (avg$ | async)! > 0) {
+              <div class="text-4xl md:text-5xl font-bold mb-2"
+                   [class.text-green-500]="(avg$ | async)! >= 4"
+                   [class.text-blue-500]="(avg$ | async)! >= 3 && (avg$ | async)! < 4"
+                   [class.text-orange-500]="(avg$ | async)! >= 2 && (avg$ | async)! < 3"
+                   [class.text-red-500]="(avg$ | async)! < 2"
+                   role="text"
+                   [attr.aria-label]="'Average rating: ' + ((avg$ | async) | number:'1.1-1') + ' out of 5 stars'">
+                {{ (avg$ | async) | number:'1.1-1' }}
+              </div>
+              <div class="flex justify-content-center gap-1 mb-2"
+                   role="img"
+                   [attr.aria-label]="'Star rating: ' + ((avg$ | async) | number:'1.1-1') + ' out of 5 stars'">
+                @for (star of [1,2,3,4,5]; track star) {
+                  @if (star <= (avg$ | async)!) {
+                    <i class="pi pi-star-fill text-yellow-500" aria-hidden="true"></i>
+                  } @else {
+                    <i class="pi pi-star text-300" aria-hidden="true"></i>
+                  }
+                }
+              </div>
+              <small class="text-color-secondary text-xs" role="text">
+                {{ participantCount() }} Bewertung{{ participantCount() !== 1 ? 'en' : '' }}
+              </small>
+            } @else {
+              <div class="text-center text-color-secondary py-4" role="status"
+                   aria-label="No ratings available yet">
+                <i class="pi pi-chart-line text-3xl mb-2 block" aria-hidden="true"></i>
+                <p class="text-sm">Noch keine Bewertungen</p>
+                <small class="text-xs">Warte auf die ersten Votes</small>
+              </div>
+            }
+          </div>
+        }
+      </p-card>
     </div>
   </div>
+
+  <!-- Chart Section -->
+  <div class="grid p-2 md:p-4 overflow-hidden">
+    <div class="col-12">
+      <p-panel class="shadow-1" role="region" aria-labelledby="chart-heading">
+        <ng-template pTemplate="header">
+          <h2 id="chart-heading" class="text-base md:text-lg font-semibold m-0">Vote Verteilung</h2>
+        </ng-template>
+        @if (isChartLoading()) {
+          <!-- Chart Loading Skeleton -->
+          <div class="text-center py-4" role="status" aria-label="Loading vote distribution chart">
+            <p-skeleton width="100%" height="250px" borderRadius="8px"
+                       aria-label="Chart placeholder"></p-skeleton>
+          </div>
+        } @else {
+          @if (hasChartData$ | async) {
+            <div class="chart-container">
+              <apx-chart
+                id="chart"
+                [dataLabels]="chartOptions.dataLabels"
+                [series]="(series$ | async) || []"
+                [chart]="chartOptions.chart"
+                [xaxis]="chartOptions.xaxis"
+                [yaxis]="chartOptions.yaxis"
+                [title]="chartOptions.title"
+                [responsive]="chartOptions.responsive"
+                role="img"
+                aria-label="Vote distribution chart showing the distribution of ratings from 1 to 5 stars"
+                [attr.aria-describedby]="'chart-description'"
+              ></apx-chart>
+              <div id="chart-description" class="sr-only">
+                Interactive chart showing how many votes were received for each rating level from 1 to 5 stars.
+                Use screen reader table navigation to access detailed data.
+              </div>
+            </div>
+          } @else {
+            <div class="text-center py-6 text-color-secondary" role="status"
+                 aria-label="No chart data available yet">
+              <i class="pi pi-chart-bar text-4xl mb-3 block" aria-hidden="true"></i>
+              <p class="text-base mb-2">Noch keine Daten zum Anzeigen</p>
+              <small class="text-sm">Das Diagramm wird aktualisiert sobald Votes eingehen</small>
+            </div>
+          }
+        }
+      </p-panel>
+    </div>
+  </div>
+
+  <!-- Loading Overlay for Initial Load (Minimal) -->
+  @if (isInitialLoading()) {
+    <div class="fixed inset-0 bg-black-alpha-10 z-10 flex align-items-center justify-content-center"
+         role="dialog" aria-modal="true" aria-labelledby="loading-title">
+      <p-card class="text-center shadow-2 border-none">
+        <p-progressSpinner class="w-2rem h-2rem" strokeWidth="4"
+                          role="status" aria-label="Loading dashboard data"></p-progressSpinner>
+        <p id="loading-title" class="mt-2 mb-0 text-sm">Lade...</p>
+      </p-card>
+    </div>
+  }
+
 </div>

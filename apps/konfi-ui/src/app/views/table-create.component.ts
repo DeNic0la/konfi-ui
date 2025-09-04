@@ -11,6 +11,7 @@ import { FormsModule } from '@angular/forms';
 import { ButtonDirective, ButtonIcon, ButtonLabel } from 'primeng/button';
 import { StyleClass } from 'primeng/styleclass';
 import {Router} from "@angular/router";
+import {AutoFocus} from "primeng/autofocus";
 
 @Component({
   selector: 'app-table-create',
@@ -23,6 +24,7 @@ import {Router} from "@angular/router";
     ButtonIcon,
     ButtonDirective,
     StyleClass,
+    AutoFocus,
   ],
   template: `
     <div
@@ -38,8 +40,10 @@ import {Router} from "@angular/router";
               <p-floatlabel pStyleClass="w-6">
                 <input
                   id="tablename"
+                  [pAutoFocus]="true"
                   tabindex="1"
                   pInputText
+                  (keydown.enter)="createTable()"
                   [invalid]="isInvalid && tablename.trim().length === 0"
                   [(ngModel)]="tablename"
                 />
