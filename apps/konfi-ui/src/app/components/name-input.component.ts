@@ -4,7 +4,7 @@ import {
   inject,
   ViewEncapsulation,
   signal,
-  computed,
+  computed, output,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FloatLabelModule } from 'primeng/floatlabel';
@@ -144,13 +144,14 @@ import {AutoFocus} from "primeng/autofocus";
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NameInputComponent {
-  public readonly nameService = inject(NameService);
   private readonly messageService = inject(MessageService);
 
   // Component state
   tempUsername = signal('');
   isProcessing = signal(false);
   showValidationError = signal(false);
+  declareUsername = output<string>();
+
 
   // Computed validations
   isValidLength = computed(() => {
@@ -195,6 +196,8 @@ export class NameInputComponent {
   }
 
   confirmName() {
+    this.isProcessing.set(true);
+
     const trimmedName = this.tempUsername().trim();
 
     // Validate input
@@ -206,43 +209,11 @@ export class NameInputComponent {
         detail: this.validationMessage(),
         life: 4000
       });
+      this.isProcessing.set(false);
       return;
     }
 
-    // Start processing
-    this.isProcessing.set(true);
+    this.declareUsername.emit(trimmedName)
 
-    // Show immediate feedback
-    this.messageService.add({
-      severity: 'info',
-      summary: 'Beitritt wird verarbeitet',
-      detail: `Willkommen ${trimmedName}!`,
-      life: 2000
-    });
-
-    // Simulate processing time and confirm
-    timer(1500).subscribe(() => {
-      try {
-        this.nameService.username = trimmedName;
-        this.nameService.confirmName();
-
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Erfolgreich beigetreten',
-          detail: 'Du kannst jetzt abstimmen!',
-          life: 3000
-        });
-
-      } catch (error) {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Fehler beim Beitreten',
-          detail: 'Bitte versuche es erneut',
-          life: 4000
-        });
-      } finally {
-        this.isProcessing.set(false);
-      }
-    });
   }
 }

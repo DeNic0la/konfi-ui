@@ -8,7 +8,7 @@ import {
   PLATFORM_ID,
   ViewEncapsulation,
   signal,
-  computed,
+  computed, HostListener,
 } from '@angular/core';
 import {
   CommonModule,
@@ -27,7 +27,21 @@ import { Badge } from 'primeng/badge';
 import { Chip } from 'primeng/chip';
 import { BlockUI } from 'primeng/blockui';
 import { Panel } from 'primeng/panel';
-import { timer, filter, map } from 'rxjs';
+import {
+  timer,
+  filter,
+  map,
+  Subject,
+  debounce,
+  debounceTime,
+  switchMap,
+  catchError,
+  of,
+  endWith,
+  distinctUntilChanged, shareReplay, takeUntil, takeWhile, finalize, startWith, scan, BehaviorSubject, defer, NEVER, tap
+} from 'rxjs';
+import { toSignal} from "@angular/core/rxjs-interop";
+import {LetDirective} from "@ngrx/component";
 
 @Component({
   selector: 'app-konfi-selection',
@@ -38,44 +52,26 @@ import { timer, filter, map } from 'rxjs';
     NgOptimizedImage,
     Card,
     ProgressSpinner,
-    Toast,
     Badge,
     Chip,
     BlockUI,
-    Panel
+    Panel,
+    LetDirective
   ],
-  providers: [MessageService],
+  providers: [],
   template: `
     <div class="h-screen w-full relative" role="main" aria-labelledby="voting-title"
-         (keydown)="onKeyDown($event)" tabindex="-1">
+         *ngrxLet="canSubmitVote$ as canVote"
+         tabindex="-1">
       <h1 id="voting-title" class="sr-only">Brunch Rating Voting Interface</h1>
 
       <!-- Screen Reader Skip Navigation -->
       <a href="#voting-content" class="sr-only" (click)="focusVotingSection()">Skip to voting section</a>
-      <p-toast position="top-center" [breakpoints]="{'920px': {width: '100%', right: '0', left: '0'}}"
-               role="alert" aria-live="polite">
-      </p-toast>
+
 
       <!-- BlockUI overlay for vote submission -->
-      <p-blockUI [blocked]="isVoteSubmitting()" [target]="'.rating-container'"
-                 role="dialog" aria-modal="true" aria-labelledby="submit-status">
-        <div class="flex align-items-center gap-2">
-          <p-progressSpinner class="w-2rem h-2rem" strokeWidth="6"
-                            role="status" aria-label="Submitting vote"></p-progressSpinner>
-          <span id="submit-status">Vote wird gesendet...</span>
-        </div>
-      </p-blockUI>
 
-      <!-- Connection Status Indicator (Minimal) -->
-      @if (connectionStatus() === 'disconnected') {
-        <div class="fixed top-0 right-0 m-2 z-5" role="status" aria-live="polite">
-          <p-chip label="Offline"
-                  icon="pi pi-wifi-off"
-                  class="bg-red-50 text-red-700 text-xs"
-                  size="small">
-          </p-chip>
-        </div>
-      }
+
 
       <!-- Main Content -->
       <div class="grid h-full w-full p-2 md:p-4 lg:p-6 align-content-center">
@@ -85,7 +81,7 @@ import { timer, filter, map } from 'rxjs';
           <p-card class="mb-3 md:mb-4 text-center shadow-1">
             <div class="flex align-items-center justify-content-center gap-2 flex-wrap">
               <span class="text-base md:text-lg">Willkommen</span>
-              <p-chip [label]="nameService.username"
+              <p-chip [label]="username()"
                       icon="pi pi-user"
                       class="bg-primary-50 text-primary-800">
               </p-chip>
@@ -97,10 +93,10 @@ import { timer, filter, map } from 'rxjs';
             <div class="text-center px-2 md:px-4">
 
               <!-- Current Vote Display -->
-              @if (value > 0) {
+              @if (selectKonfi$.value > 0) {
                 <div class="mb-4">
                   <div class="flex align-items-center justify-content-center gap-2 mb-3">
-                    <p-badge [value]="value.toString()"
+                    <p-badge [value]="selectKonfi$.value.toString()"
                              severity="success"
                              size="large"
                              class="text-xl md:text-2xl">
@@ -112,19 +108,19 @@ import { timer, filter, map } from 'rxjs';
 
               <!-- Rating Component with Responsive Sizing -->
               <div class="rating-wrapper flex justify-content-center mb-4"
-                   [class.disabled]="isVoteSubmitting()"
+                   [class.disabled]="!canVote"
                    role="group"
                    aria-labelledby="rating-instructions"
-                   [attr.aria-busy]="isVoteSubmitting()">
+                   [attr.aria-busy]="!canVote">
                 <div id="rating-instructions" class="sr-only">
                   Verwende die Pfeiltasten oder klicke, um deine Bewertung von 1 bis 5 Konfitüren auszuwählen
                 </div>
                 <p-rating
-                  [ngModel]="value"
+                  [ngModel]="selectKonfi$.value"
                   (ngModelChange)="select($event)"
-                  [disabled]="isVoteSubmitting()"
+                  [disabled]="!canVote"
                   class="custom-rating responsive-rating"
-                  [attr.aria-label]="'Aktuelle Bewertung: ' + (value > 0 ? value + ' von 5 Konfitüren' : 'Keine Bewertung ausgewählt')"
+                  [attr.aria-label]="'Aktuelle Bewertung: ' + (selectKonfi$.value > 0 ? selectKonfi$.value + ' von 5 Konfitüren' : 'Keine Bewertung ausgewählt')"
                   [attr.aria-describedby]="'rating-help rating-status'">
                   <ng-template #onicon>
                     <img
@@ -133,7 +129,7 @@ import { timer, filter, map } from 'rxjs';
                       [height]="80"
                       [width]="80"
                       priority
-                      [class.pulse-animation]="isVoteSubmitting()"
+                      [class.pulse-animation]="!canVote"
                       role="img"
                       aria-hidden="true"
                       class="rating-icon"
@@ -153,23 +149,23 @@ import { timer, filter, map } from 'rxjs';
                   </ng-template>
                 </p-rating>
                 <div id="rating-help" class="sr-only" aria-live="polite">
-                  @if (value > 0) {
-                    Ausgewählt: {{ value }} von 5 Konfitüren. Drücke Escape zum Zurücksetzen.
+                  @if (selectKonfi$.value > 0) {
+                    Ausgewählt: {{ selectKonfi$.value }} von 5 Konfitüren. Drücke Escape zum Zurücksetzen.
                   } @else {
                     Keine Bewertung ausgewählt. Verwende die Maus oder Pfeiltasten zur Auswahl.
                   }
                 </div>
                 <div id="rating-status" class="sr-only" aria-live="assertive">
-                  @if (isVoteSubmitting()) {
+                  @if (!canVote) {
                     Vote wird gesendet, bitte warten...
                   }
                 </div>
               </div>
 
               <!-- Vote Feedback (Simplified) -->
-              @if (lastVoteStatus()) {
+              @if ( hasSavedVote()) {
                 <div class="mb-3">
-                  @switch (lastVoteStatus()) {
+                  @switch (lastStatus()) {
                     @case ('success') {
                       <div class="flex align-items-center justify-content-center gap-2 text-green-600 text-sm">
                         <i class="pi pi-check" aria-hidden="true"></i>
@@ -191,12 +187,6 @@ import { timer, filter, map } from 'rxjs';
                 <p class="text-sm md:text-base text-color-secondary mb-2">
                   Klicke auf die Konfitüren um deine Bewertung abzugeben
                 </p>
-                @if (connectionStatus() === 'disconnected') {
-                  <p class="text-red-600 text-xs">
-                    <i class="pi pi-wifi-off mr-1" aria-hidden="true"></i>
-                    Offline - wird automatisch synchronisiert
-                  </p>
-                }
               </div>
 
             </div>
@@ -284,54 +274,62 @@ import { timer, filter, map } from 'rxjs';
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class KonfiSelectionComponent implements AfterViewInit {
-  public readonly nameService = inject(NameService);
+export class KonfiSelectionComponent  {
   private readonly webSocketService = inject(WebSocketConnectingService);
   private readonly messageService = inject(MessageService);
-  private readonly plattform = inject(PLATFORM_ID);
-
-  public value = 0;
   id = input<string>();
+  username = input<string>();
 
   // Reactive state signals
-  connectionStatus = signal<'connecting' | 'connected' | 'disconnected' | 'reconnecting'>('connecting');
-  isVoteSubmitting = signal(false);
-  lastVoteStatus = signal<'success' | 'error' | null>(null);
+  public readonly selectKonfi$ = new BehaviorSubject<number>(0);
 
+  public readonly konfiVoteSubmit$ = this.selectKonfi$.pipe(
+    switchMap(
+      (vote) => this.webSocketService.updateKonfiVote$(
+        <string>this.id(),
+        <string>this.username(),
+        vote
+      ).pipe(
+        tap(({status})=>{this.generateScreenReaderStatusUpdates(status)}),
+        startWith({loading: true}),
+        catchError(err => of({status: 'error'})),
+        takeWhile((data) => !('status' in data)  || (data.status !== 'success' && data.status !== 'error') ,true),
+        endWith({loading:false}),
+        scan((acc, curr) => {
+          return {...acc, ...curr};
+        },{})
+      )
+    ),
+    shareReplay({refCount: true, bufferSize: 1})
+  )
 
-  public onKeyDown(event: KeyboardEvent) {
-    // Handle global keyboard shortcuts for the voting interface
-    if (event.target === document.body || (event.target as HTMLElement).tagName === 'DIV') {
-      switch(event.key) {
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-        case '5':
-          { event.preventDefault();
-          const rating = parseInt(event.key);
-          this.select(rating);
-          this.announceFocusChange(`Bewertung ${rating} ausgewählt`);
-          break; }
-        case 'Escape':
-          event.preventDefault();
-          this.value = 0;
-          this.messageService.add({
-            severity: 'info',
-            summary: 'Bewertung zurückgesetzt',
-            detail: 'Keine Bewertung ausgewählt',
-            life: 1500
-          });
-          break;
-        case 'h':
-        case 'H':
-          // Help shortcut
-          event.preventDefault();
-          this.announceHelp();
-          break;
-      }
-    }
-  }
+  public readonly isLoading$ = this.konfiVoteSubmit$.pipe(
+    map(res => 'loading' in res ? res.loading : false),
+    distinctUntilChanged(),
+    startWith(false),
+    shareReplay({refCount: true, bufferSize: 1})
+  )
+  public readonly lastKonfiSubmit$ = this.konfiVoteSubmit$.pipe(
+    filter((data): data is {status: string} => ('status' in data) && typeof data.status === 'string'),
+    map<{ status: string }, string>(({status}) => status),
+    distinctUntilChanged(),
+    startWith(false),
+    tap(()=> {this.hasSavedVote.set(true)}),
+    shareReplay({refCount: true, bufferSize: 1})
+  )
+  public readonly canSubmitVote$ = this.webSocketService.connectionStatus$.pipe(
+    map((status) => status === 'connected'),
+    distinctUntilChanged(),
+    switchMap((connected) =>
+      connected ?  this.isLoading$.pipe(map(loading => !loading)) : of(false)
+    ),
+    tap((canSubmit) => {this._blockSelect = !canSubmit}),
+    distinctUntilChanged(),
+    shareReplay({refCount: true, bufferSize: 1}),
+  )
+  public lastStatus = toSignal(this.lastKonfiSubmit$, {initialValue: false});
+  public hasSavedVote = signal(false)
+
 
   public focusVotingSection() {
     // Focus the voting section for keyboard navigation
@@ -347,11 +345,14 @@ export class KonfiSelectionComponent implements AfterViewInit {
       severity: 'info',
       summary: 'Navigation',
       detail: message,
+      key: 'sr-only',
       life: 1000
     });
   }
 
-  private announceHelp() {
+  @HostListener('window:keydown.h', ['$event'])
+  public announceHelp(event?: Event) {
+    event?.preventDefault();
     // Announce keyboard shortcuts help
     this.messageService.add({
       severity: 'info',
@@ -361,171 +362,54 @@ export class KonfiSelectionComponent implements AfterViewInit {
     });
   }
 
-  public select(vote: number) {
-    if (this.isVoteSubmitting()) return;
-
-    this.value = vote;
-    this.isVoteSubmitting.set(true);
-    this.lastVoteStatus.set(null);
-
-
-    this.webSocketService.updateKonfiVote$(
-      <string>this.id(),
-      this.nameService.username,
-      vote
-    ).subscribe({
-      next: ({status})=>{
-        if (status === 'success') {
-          this.lastVoteStatus.set('success');
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Vote gespeichert',
-            detail: `Deine Bewertung (${vote}/5) wurde erfolgreich gespeichert`,
-            life: 3000
-          });
-        }
-        if (status === 'error' || status === 'unknown') {
-          this.lastVoteStatus.set('error');
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Fehler',
-            detail: 'Vote konnte nicht gespeichert werden',
-            life: 4000
-          });
-        }
-        if (status === 'loading') {
-          this.messageService.add({
-            severity: 'info',
-            summary: 'Vote wird gesendet',
-            detail: `Bewertung: ${vote}/5 Konfitüren`,
-            life: 2000
-          });
-        }
-      },
-      error: err => {
-        this.isVoteSubmitting.set(false);
-        this.lastVoteStatus.set(null);
-        this.lastVoteStatus.set('error');
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Fehler',
-          detail: 'Vote konnte nicht gespeichert werden',
-          life: 4000
-        });
-      },
-      complete: () => {
-        this.isVoteSubmitting.set(false);
-        this.lastVoteStatus.set(null);
-      }
-    })
-
-
-
-  }
-
-  constructor() {
-    afterNextRender(() => {
-      this.webSocketService.joinTable(
-        <string>this.id(),
-        this.nameService.username
-      );
-    });
-  }
-
-  ngAfterViewInit(): void {
-    console.log(this.plattform);
-
-    if (isPlatformBrowser(this.plattform)) {
-      // Subscribe to connection status
-      this.webSocketService.connectionStatus$.subscribe(status => {
-        this.connectionStatus.set(status);
-
-        // Show connection status changes
-        switch(status) {
-          case 'connected':
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Verbunden',
-              detail: 'Erfolgreich mit dem Server verbunden',
-              life: 2000
-            });
-            break;
-          case 'disconnected':
-            this.messageService.add({
-              severity: 'error',
-              summary: 'Verbindung verloren',
-              detail: 'Die Verbindung zum Server wurde unterbrochen',
-              life: 5000
-            });
-            break;
-          case 'reconnecting':
-            this.messageService.add({
-              severity: 'info',
-              summary: 'Verbinde neu',
-              detail: 'Versuche die Verbindung wiederherzustellen...',
-              life: 3000
-            });
-            break;
-        }
+  private generateScreenReaderStatusUpdates(status: string){
+    if (status === 'success') {
+      this.messageService.add({
+        severity: 'success',
+        key: 'sr-only',
+        summary: 'Vote gespeichert',
+        detail: `Deine Bewertung (${this.selectKonfi$.value}/5) wurde erfolgreich gespeichert`,
+        life: 3000
       });
-
-      // Subscribe to operation status for additional feedback
-      this.webSocketService.operationStatus$
-        .pipe(filter(status => status.type === 'join'))
-        .subscribe(status => {
-          if (status.status === 'success') {
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Tisch beigetreten',
-              detail: 'Du bist dem Tisch erfolgreich beigetreten',
-              life: 3000
-            });
-          }
-        });
-
-      // Observe table for real-time updates
-      this.webSocketService.observeTable(<string>this.id())
-        .pipe(filter(res => res !== null))
-        .subscribe((res) => {
-          console.log('Table update received:', res);
-
-          // Show notifications for other user activities
-          if (res && res.user !== this.nameService.username) {
-            switch(res.type) {
-              case 'JOIN':
-                this.messageService.add({
-                  severity: 'info',
-                  summary: 'Neuer Teilnehmer',
-                  detail: `${res.user} ist dem Tisch beigetreten`,
-                  life: 2000
-                });
-                break;
-              case 'UPDATE':
-                this.messageService.add({
-                  severity: 'info',
-                  summary: 'Vote Update',
-                  detail: `${res.user} hat sein Vote aktualisiert`,
-                  life: 1500
-                });
-                break;
-              case 'LEAVE':
-                this.messageService.add({
-                  severity: 'warn',
-                  summary: 'Teilnehmer verlassen',
-                  detail: `${res.user} hat den Tisch verlassen`,
-                  life: 2000
-                });
-                break;
-            }
-          }
-        });
-
-      // Initialize with a neutral vote
-      this.webSocketService.updateKonfiVote(
-        <string>this.id(),
-        this.nameService.username,
-        0
-      );
+    }
+    if (status === 'error' || status === 'unknown') {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Fehler',
+        key: 'sr-only',
+        detail: 'Vote konnte nicht gespeichert werden',
+        life: 4000
+      });
+    }
+    if (status === 'loading') {
+      this.messageService.add({
+        severity: 'info',
+        key: 'sr-only',
+        summary: 'Vote wird gesendet',
+        detail: `Bewertung: ${this.selectKonfi$.value}/5 Konfitüren`,
+        life: 2000
+      });
     }
   }
+
+  private _blockSelect = false;
+  @HostListener('window:keydow.Escape', ['0','$event'])
+  @HostListener('window:keydow.1', ['1','$event'])
+  @HostListener('window:keydow.2', ['2','$event'])
+  @HostListener('window:keydow.3', ['3','$event'])
+  @HostListener('window:keydow.4', ['4','$event'])
+  @HostListener('window:keydow.5', ['5','$event'])
+  public select(vote: number,event?: Event) {
+    if (this._blockSelect) return;
+    if (event !== undefined){
+      event.preventDefault()
+      this.announceFocusChange(`Bewertung ${vote} ausgewählt`);
+    }
+    this.selectKonfi$.next(vote)
+  }
+
+
+
+
+
 }

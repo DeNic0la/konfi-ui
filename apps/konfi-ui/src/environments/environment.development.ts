@@ -1,8 +1,8 @@
 
 export const environment = {
   production: false,
-  backendUrl: 'http://konfi.denic0la.ch/',
+  backendUrl: 'localhost:8080/',
   getHostnameForWS: () => {
-    return "konfi.denic0la.ch";
+    return "localhost:8080";
   }
 };

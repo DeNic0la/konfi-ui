@@ -19,7 +19,7 @@ import {
 } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { RxStomp } from '@stomp/rx-stomp';
-import { CheckTableMessage, TableMessage } from '../zod/TableMessage';
+import {CheckTableMessage, TableBody, TableDestination, TableMessage} from '../zod/TableMessage';
 import { z } from 'zod';
 import {HttpClient} from "@angular/common/http";
 
@@ -46,10 +46,7 @@ const statemap = {
 @Injectable({
   providedIn: 'root',
   useFactory: () => {
-    const platformId = inject(PLATFORM_ID);
-    if (isPlatformBrowser(platformId)) {
-
-
+    if (isPlatformBrowser(inject(PLATFORM_ID))) {
       return new WebSocketConnectingService(nativeWebSocketFactory(inject(HttpClient)));
     }
     return null;
@@ -115,7 +112,6 @@ export class WebSocketConnectingService {
       reconnectDelay: 5000,
     });
     this.rxStompClient.activate();
-
   }
 
   private  _observingTable = {
@@ -155,6 +151,39 @@ export class WebSocketConnectingService {
     return  o;
   }
 
+  public joinTable$(tableName: string, username: string):Observable<{status: 'loading' | 'success' | 'error',message?: string}> {
+    return new Observable(subscriber => {
+      const success$ = this.observeTable(tableName).pipe(
+        filter((v) => v!== null && v.user === username),
+        take(1),
+        map(value => value?.type === 'JOIN')
+      )
+      subscriber.add(success$.subscribe({
+        next: value => {
+          subscriber.next({status: value ? 'success' : 'error'})
+        },
+        error: err => {
+          subscriber.next({status: 'error', message: err.message})
+          subscriber.complete();
+        },
+        complete: () => {
+          subscriber.complete();
+        }
+      }))
+      try {
+        this.rxStompClient.publish({
+          destination: TableDestination.Join(tableName),
+          body: TableBody.Join(username)
+        });
+        subscriber.next({status: 'loading'})
+      }
+      catch (e){
+        console.error(e);
+        subscriber.next({status: 'error', message: (e as Error).message});
+        subscriber.complete();
+      }
+    })
+  }
   public joinTable(tableName: string, username: string) {
     this.operationStatusSubject.next({ type: 'join', status: 'loading', message: 'Joining table...' });
     const joinedSuccessfully$ = this.observeTable(tableName).pipe(
@@ -164,11 +193,8 @@ export class WebSocketConnectingService {
     )
     try {
       this.rxStompClient.publish({
-        destination: `/live/join/${tableName}`,
-        body: JSON.stringify({
-          user: username,
-          type: 'JOIN',
-        }),
+        destination: TableDestination.Join(tableName),
+        body: TableBody.Join(username)
       });
 
       // Simulate success after a delay (in real app, this would be confirmed by server response)
@@ -197,12 +223,8 @@ export class WebSocketConnectingService {
       }));
       try {
         this.rxStompClient.publish({
-          destination: `/live/update/${tableName}`,
-          body: JSON.stringify({
-            user: username,
-            type: 'UPDATE',
-            konfi: z.number().int().parse(konfi),
-          }),
+          destination: TableDestination.Update(tableName),
+          body: TableBody.Update({user: username, konfi})
         });
         subscriber.next({status: 'loading'})
       }
@@ -216,12 +238,8 @@ export class WebSocketConnectingService {
   public updateKonfiVote(tableName: string, username: string, konfi: number) {
     try {
       this.rxStompClient.publish({
-        destination: `/live/update/${tableName}`,
-        body: JSON.stringify({
-          user: username,
-          type: 'UPDATE',
-          konfi: z.number().int().parse(konfi),
-        }),
+        destination: TableDestination.Update(tableName),
+        body: TableBody.Update({user: username, konfi})
       });
 
     } catch (error) {
