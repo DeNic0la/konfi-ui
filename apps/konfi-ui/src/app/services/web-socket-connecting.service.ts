@@ -21,11 +21,15 @@ import { environment } from '../../environments/environment';
 import { RxStomp } from '@stomp/rx-stomp';
 import { CheckTableMessage, TableMessage } from '../zod/TableMessage';
 import { z } from 'zod';
+import {HttpClient} from "@angular/common/http";
 
-const backendUrlFactory = () => {
-  const prefix = environment.production ? 'wss' : 'ws';
-  return `${prefix}://${environment.getHostnameForWS()}/native`;
-};
+const nativeWebSocketFactory = (http:HttpClient):Observable<string> => {
+  return http.get<{wsProtocol: string|undefined,wsHost:string|undefined}>('express/config').pipe(
+    filter((value) => z.object({wsProtocol: z.string().min(1), wsHost: z.string().min(2)}).safeParse(value).success),
+    map(({wsProtocol,wsHost}) => `${wsProtocol}://${wsHost}/native`),
+    take(1),
+  )
+}
 
 const webSocketJsFactory = () => {
   const prefix = environment.production ? 'https' : 'http';
@@ -33,32 +37,41 @@ const webSocketJsFactory = () => {
 };
 
 export type ZodTableMessage = z.infer<typeof TableMessage>;
-
+const statemap = {
+  0: 'connecting',
+  1: 'connected',
+  2: 'disconnected',
+  3: 'disconnected',
+} as const;
 @Injectable({
   providedIn: 'root',
   useFactory: () => {
     const platformId = inject(PLATFORM_ID);
     if (isPlatformBrowser(platformId)) {
-      return new WebSocketConnectingService();
+
+
+      return new WebSocketConnectingService(nativeWebSocketFactory(inject(HttpClient)));
     }
     return null;
   },
 })
 export class WebSocketConnectingService {
   private readonly rxStompClient = new RxStomp();
-  private readonly client = new Client({
-    brokerURL: backendUrlFactory(),
-    reconnectDelay: 5000,
-    heartbeatIncoming: 4000,
-    heartbeatOutgoing: 4000,
-  });
+
 
   // Connection status tracking
   private readonly connectionStatusSubject = new BehaviorSubject<'connecting' | 'connected' | 'disconnected' | 'reconnecting'>('connecting');
-  public readonly connectionStatus$ = this.connectionStatusSubject.asObservable();
+  public readonly connectionStatus$: Observable<'connecting' | 'connected' | 'disconnected' | 'reconnecting'> = this.rxStompClient.connectionState$.pipe(
+    map((state) => statemap[state]),
+    shareReplay({ refCount: true, bufferSize: 1 })
+  );
+
 
   // Operation status tracking
   private readonly operationStatusSubject = new BehaviorSubject<{ type: string; status: 'idle' | 'loading' | 'success' | 'error'; message?: string }>({ type: 'none', status: 'idle' });
+  /**
+   * @deprecated dont use that, i will removeit soon
+   */
   public readonly operationStatus$ = merge(
     this.operationStatusSubject.asObservable(),
     this.operationStatusSubject.asObservable().pipe(
@@ -71,72 +84,40 @@ export class WebSocketConnectingService {
     shareReplay({ refCount: true, bufferSize: 1 })
   )
 
-  private bindable(callback: (isConnected: boolean, error: unknown) => void) {
-    this.client.onStompError = (error) => {
-      this.connectionStatusSubject.next('disconnected');
-      callback(false, error);
-    };
-    this.client.onWebSocketClose = (event) => {
-      this.connectionStatusSubject.next('disconnected');
-      callback(false, event);
-    };
-    this.client.onConnect = () => {
-      this.connectionStatusSubject.next('connected');
-      callback(true, null);
-    };
-    this.client.beforeConnect = () => {
-      this.connectionStatusSubject.next('connecting');
-    };
-    callback(this.client.connected, null);
-  }
 
-  private readonly onClientConnected$ = bindCallback(
-    this.bindable.bind(this)
-  )().pipe(
-    map((isConnected) => {
-      return isConnected;
-    }),
-    shareReplay({ refCount: true, bufferSize: 1 })
-  );
 
-  constructor() {
+  // eslint-disable-next-line @angular-eslint/prefer-inject
+  constructor(nativeUrl: Observable<string>) {
     if (typeof WebSocket !== 'function') {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-expect-error
-      this.client.webSocketFactory = webSocketJsFactory;
-
-      this.rxStompClient.configure({
-        webSocketFactory: webSocketJsFactory,
-        brokerURL: `${environment.getHostnameForWS()}/sockJs`,
-        reconnectDelay: 5000,
-      });
-    } else {
-      this.rxStompClient.configure({
-        brokerURL: backendUrlFactory(),
-        reconnectDelay: 5000,
-      });
+      this.setupSockJs();
     }
-
-    // Setup connection state tracking for RxStomp
-    this.rxStompClient.connectionState$.subscribe(state => {
-      // RxStomp connection states: CONNECTING = 0, OPEN = 1, CLOSING = 2, CLOSED = 3
-      switch(state) {
-        case 0: // CONNECTING
-          this.connectionStatusSubject.next('connecting');
-          break;
-        case 1: // OPEN
-          this.connectionStatusSubject.next('connected');
-          break;
-        case 2: // CLOSING
-        case 3: // CLOSED
-          this.connectionStatusSubject.next('disconnected');
-          break;
-      }
-    });
-
-    this.rxStompClient.activate();
-    this.client.activate();
+    else {
+      nativeUrl.subscribe(value =>{
+        this.setupNative(value)
+      })
+    }
   }
+  private setupNative(url: string) {
+    this.rxStompClient.configure({
+      brokerURL: url,
+      reconnectDelay: 5000,
+    });
+    this.rxStompClient.activate();
+  }
+  private setupSockJs() {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    this.client.webSocketFactory = webSocketJsFactory;
+
+    this.rxStompClient.configure({
+      webSocketFactory: webSocketJsFactory,
+      brokerURL: `${environment.getHostnameForWS()}/sockJs`,
+      reconnectDelay: 5000,
+    });
+    this.rxStompClient.activate();
+
+  }
+
   private  _observingTable = {
     tableName: '',
     observable: null,
@@ -233,12 +214,6 @@ export class WebSocketConnectingService {
     })
   }
   public updateKonfiVote(tableName: string, username: string, konfi: number) {
-    this.operationStatusSubject.next({ type: 'vote', status: 'loading', message: 'Updating vote...' });
-    const success$ = this.observeTable(tableName).pipe(
-      filter((v) => v!== null && v.user === username && v.type === 'UPDATE'),
-      take(1),
-      map(value => value?.konfi)
-    )
     try {
       this.rxStompClient.publish({
         destination: `/live/update/${tableName}`,
@@ -249,14 +224,6 @@ export class WebSocketConnectingService {
         }),
       });
 
-      // Simulate success feedback
-      success$.subscribe((value) => {
-        if (value === konfi) {
-          this.operationStatusSubject.next({type: 'vote', status: 'success', message: 'Vote updated successfully'});
-
-        }
-      });
-
     } catch (error) {
       this.operationStatusSubject.next({ type: 'vote', status: 'error', message: 'Failed to update vote' });
       console.error(error);
@@ -265,29 +232,9 @@ export class WebSocketConnectingService {
   }
   public observeTopic(topic: string) {
     return this.rxStompClient.watch(topic);
-
-    return this.onClientConnected$.pipe(
-      takeWhile((value) => !value, true),
-      filter((value) => !!value),
-      switchMap(
-        () =>
-          new Observable((subscriber) => {
-            const clientSub = this.client.subscribe(topic, (message) => {
-              // TODO: Validate message using zod schema
-              console.log(message);
-              subscriber.next(message);
-            });
-            return () => {
-              clientSub.unsubscribe();
-            };
-          })
-      ),
-      shareReplay({ refCount: true, bufferSize: 1 })
-    );
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public publish(destination: string, body: any) {
     return this.rxStompClient.publish({ destination, body });
-    this.client.publish({ destination, body });
   }
 }
