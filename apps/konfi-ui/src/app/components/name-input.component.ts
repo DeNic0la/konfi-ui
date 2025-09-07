@@ -10,17 +10,11 @@ import { CommonModule } from '@angular/common';
 import { FloatLabelModule } from 'primeng/floatlabel';
 import { InputText } from 'primeng/inputtext';
 import { FormsModule } from '@angular/forms';
-import { ButtonDirective, ButtonIcon, ButtonLabel } from 'primeng/button';
-import { StyleClass } from 'primeng/styleclass';
-import { NameService } from '../services/name.service';
+import { ButtonDirective } from 'primeng/button';
 import { Card } from 'primeng/card';
-import { Message } from 'primeng/message';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Toast } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
-import { InputGroup } from 'primeng/inputgroup';
-import { InputGroupAddon } from 'primeng/inputgroupaddon';
-import { timer } from 'rxjs';
 import {AutoFocus} from "primeng/autofocus";
 
 @Component({
@@ -30,16 +24,10 @@ import {AutoFocus} from "primeng/autofocus";
     FloatLabelModule,
     InputText,
     FormsModule,
-    ButtonLabel,
-    ButtonIcon,
     ButtonDirective,
-    StyleClass,
     Card,
-    Message,
     ProgressSpinner,
     Toast,
-    InputGroup,
-    InputGroupAddon,
     AutoFocus
   ],
   providers: [MessageService],

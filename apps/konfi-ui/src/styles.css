@@ -1,6 +1,24 @@
 /* You can add global styles to this file, and also import other style files */
 @import 'primeicons/primeicons.css';
 
+/* Performance optimizations */
+* {
+  box-sizing: border-box;
+}
+
+/* Enable hardware acceleration for animations */
+.fade-in,
+.pulse,
+.loading-shimmer,
+.pulse-animation {
+  will-change: transform, opacity;
+}
+
+/* Optimize font loading */
+body {
+  font-display: swap;
+}
+
 
 body {
   margin: 0;
@@ -126,4 +144,80 @@ body {
 .status-reconnecting {
   background-color: var(--p-orange-100);
   color: var(--p-orange-500);
+}
+
+/* Consolidate common rating icon styles for performance */
+.rating-icon {
+  width: 60px !important;
+  height: 60px !important;
+  transition: all 0.3s ease;
+  transform: translateZ(0); /* Enable hardware acceleration */
+}
+
+@media (min-width: 768px) {
+  .rating-icon {
+    width: 80px !important;
+    height: 80px !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .rating-icon {
+    width: 100px !important;
+    height: 100px !important;
+  }
+}
+
+/* Optimize custom rating styles */
+.custom-rating .p-rating-item:hover .rating-icon {
+  transform: scale(1.1) translateZ(0);
+}
+
+.custom-rating .p-rating-item.p-rating-item-active .rating-icon {
+  filter: drop-shadow(0 0 8px rgba(var(--p-primary-400), 0.4));
+}
+
+/* Consolidate pulse animations */
+.pulse-animation {
+  animation: pulse-scale 1s infinite;
+}
+
+@keyframes pulse-scale {
+  0% { 
+    transform: scale(1) translateZ(0); 
+  }
+  50% { 
+    transform: scale(1.05) translateZ(0); 
+  }
+  100% { 
+    transform: scale(1) translateZ(0); 
+  }
+}
+
+/* Performance utility classes */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.smooth-transition {
+  transition: all 0.3s ease;
+}
+
+/* Reduce layout thrashing with contain */
+.rating-container {
+  contain: layout style;
+}
+
+/* Optimize responsive spacing */
+@media (max-width: 767px) {
+  .custom-rating {
+    gap: 0.25rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .custom-rating {
+    gap: 0.5rem;
+  }
 }

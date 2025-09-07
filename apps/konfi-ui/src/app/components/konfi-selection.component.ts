@@ -1,44 +1,32 @@
 import {
-  afterNextRender,
-  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   inject,
   input,
-  PLATFORM_ID,
   ViewEncapsulation,
   signal,
-  computed, HostListener,
+  HostListener,
 } from '@angular/core';
 import {
   CommonModule,
-  isPlatformBrowser,
   NgOptimizedImage,
 } from '@angular/common';
-import { NameService } from '../services/name.service';
 import { WebSocketConnectingService } from '../services/web-socket-connecting.service';
 import { FormsModule } from '@angular/forms';
 import { Rating } from 'primeng/rating';
 import { Card } from 'primeng/card';
-import { ProgressSpinner } from 'primeng/progressspinner';
-import { Toast } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { Badge } from 'primeng/badge';
 import { Chip } from 'primeng/chip';
-import { BlockUI } from 'primeng/blockui';
 import { Panel } from 'primeng/panel';
 import {
-  timer,
   filter,
   map,
-  Subject,
-  debounce,
-  debounceTime,
   switchMap,
   catchError,
   of,
   endWith,
-  distinctUntilChanged, shareReplay, takeUntil, takeWhile, finalize, startWith, scan, BehaviorSubject, defer, NEVER, tap
+  distinctUntilChanged, shareReplay, takeWhile, startWith, scan, BehaviorSubject, tap
 } from 'rxjs';
 import { toSignal} from "@angular/core/rxjs-interop";
 import {LetDirective} from "@ngrx/component";
@@ -51,10 +39,8 @@ import {LetDirective} from "@ngrx/component";
     Rating,
     NgOptimizedImage,
     Card,
-    ProgressSpinner,
     Badge,
     Chip,
-    BlockUI,
     Panel,
     LetDirective
   ],
@@ -211,64 +197,10 @@ import {LetDirective} from "@ngrx/component";
       transition: all 0.3s ease;
     }
 
-    /* Responsive rating icons */
-    .rating-icon {
-      width: 60px !important;
-      height: 60px !important;
-      transition: all 0.3s ease;
-    }
-
-    @media (min-width: 768px) {
-      .rating-icon {
-        width: 80px !important;
-        height: 80px !important;
-      }
-    }
-
-    @media (min-width: 1024px) {
-      .rating-icon {
-        width: 100px !important;
-        height: 100px !important;
-      }
-    }
-
-    .custom-rating .p-rating-item:hover .rating-icon {
-      transform: scale(1.1);
-    }
-
-    .custom-rating .p-rating-item.p-rating-item-active .rating-icon {
-      filter: drop-shadow(0 0 8px rgba(var(--p-primary-400), 0.4));
-    }
-
-    .pulse-animation {
-      animation: pulse 1s infinite;
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-      100% { transform: scale(1); }
-    }
-
-    .fixed {
-      position: fixed;
-    }
+    /* Component-specific styles only */
 
     .z-5 {
       z-index: 1050;
-    }
-
-    /* Responsive spacing adjustments */
-    @media (max-width: 767px) {
-      .custom-rating {
-        gap: 0.25rem;
-      }
-    }
-
-    @media (min-width: 768px) {
-      .custom-rating {
-        gap: 0.5rem;
-      }
     }
   `,
   encapsulation: ViewEncapsulation.None,
@@ -292,7 +224,7 @@ export class KonfiSelectionComponent  {
       ).pipe(
         tap(({status})=>{this.generateScreenReaderStatusUpdates(status)}),
         startWith({loading: true}),
-        catchError(err => of({status: 'error'})),
+        catchError(() => of({status: 'error'})),
         takeWhile((data) => !('status' in data)  || (data.status !== 'success' && data.status !== 'error') ,true),
         endWith({loading:false}),
         scan((acc, curr) => {

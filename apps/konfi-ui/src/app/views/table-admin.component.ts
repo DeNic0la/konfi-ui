@@ -47,8 +47,6 @@ import { Toast } from 'primeng/toast';
 import {MessageService, PrimeTemplate} from 'primeng/api';
 import { Badge } from 'primeng/badge';
 import { Panel } from 'primeng/panel';
-import { Divider } from 'primeng/divider';
-import { ProgressBar } from 'primeng/progressbar';
 
 @Component({
   selector: 'app-table-admin',
@@ -64,8 +62,6 @@ import { ProgressBar } from 'primeng/progressbar';
     Toast,
     Badge,
     Panel,
-    Divider,
-    ProgressBar,
     PrimeTemplate
   ],
   providers: [MessageService],
@@ -171,7 +167,7 @@ export class TableAdminComponent implements OnInit {
       this.clipboad.copy(this.joinUrl());
       this.onCopied$.next();
       this.showToast('success', 'Link kopiert', 'Der Einladungslink wurde in die Zwischenablage kopiert');
-    } catch (error) {
+    } catch {
       this.showToast('error', 'Fehler', 'Link konnte nicht kopiert werden');
     }
   }
@@ -200,7 +196,7 @@ export class TableAdminComponent implements OnInit {
     catchError(error => {
       console.error('Error observing table:', error);
       this.showToast('error', 'Fehler', 'Problem beim Laden der Live-Daten');
-      return of(null as any);
+      return of(null as unknown as ZodTableMessage);
     }),
     shareReplay({ refCount: true, bufferSize: 1 })
   );

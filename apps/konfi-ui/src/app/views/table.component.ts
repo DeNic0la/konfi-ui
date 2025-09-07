@@ -4,7 +4,6 @@ import {
   inject,
   input,
   signal,
-  OnInit,
   ViewEncapsulation, AfterViewInit, PLATFORM_ID,
 } from '@angular/core';
 import {CommonModule, isPlatformBrowser} from '@angular/common';
@@ -18,7 +17,7 @@ import { Message } from 'primeng/message';
 import { Toast } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { WebSocketConnectingService } from '../services/web-socket-connecting.service';
-import {BehaviorSubject, delay, distinctUntilChanged, filter, map, shareReplay, startWith, switchMap} from 'rxjs';
+import {BehaviorSubject, distinctUntilChanged, filter, map, switchMap} from 'rxjs';
 import {takeUntilDestroyed, toSignal} from "@angular/core/rxjs-interop";
 import {StyleClass} from "primeng/styleclass";
 
@@ -168,8 +167,8 @@ export class TableComponent implements AfterViewInit {
 
   ngAfterViewInit() {
     if (isPlatformBrowser(this.plattform)){
+      // Browser-specific initialization
     }
-
   }
 
   private showConnectionToast(message: string, severity: 'success' | 'error' | 'info') {

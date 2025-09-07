@@ -1,18 +1,13 @@
 import { inject, Injectable, PLATFORM_ID } from '@angular/core';
 import SockJS from 'sockjs-client';
 import { isPlatformBrowser } from '@angular/common';
-import { Client } from '@stomp/stompjs';
 import {
-  bindCallback,
   filter,
   map,
   Observable,
   shareReplay,
-  switchMap,
-  takeWhile,
   BehaviorSubject,
   merge,
-  timer,
   retry,
   catchError,
   of, takeUntil, Subject, take, debounceTime, delay

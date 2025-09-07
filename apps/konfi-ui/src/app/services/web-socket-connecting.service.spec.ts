@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { PLATFORM_ID } from '@angular/core';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { of, Subject } from 'rxjs';
 import {
   WebSocketConnectingService,
@@ -52,7 +53,8 @@ describe('WebSocketConnectingService', () => {
       activate: jest.fn(),
       watch: jest.fn().mockReturnValue(of()),
       publish: jest.fn(),
-    };
+      connectionState$: of(1), // Mock connected state
+    } as unknown as typeof mockRxStomp;
 
     const { RxStomp } = require('@stomp/rx-stomp');
     RxStomp.mockImplementation(() => mockRxStomp);
@@ -61,6 +63,7 @@ describe('WebSocketConnectingService', () => {
   describe('in browser environment', () => {
     beforeEach(() => {
       TestBed.configureTestingModule({
+        imports: [HttpClientTestingModule],
         providers: [{ provide: PLATFORM_ID, useValue: 'browser' }],
       });
       service = TestBed.inject(WebSocketConnectingService);
@@ -172,6 +175,7 @@ describe('WebSocketConnectingService', () => {
   describe('in server environment', () => {
     beforeEach(() => {
       TestBed.configureTestingModule({
+        imports: [HttpClientTestingModule],
         providers: [{ provide: PLATFORM_ID, useValue: 'server' }],
       });
       service = TestBed.inject(WebSocketConnectingService);
