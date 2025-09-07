@@ -19,18 +19,30 @@ export const CheckTableMessage = TableMessage.or(
     .pipe(TableMessage)
 );
 
-
-const zUser = z.object({user: z.string().min(2)})
-  .or(z.object({username: z.string().min(2)}).transform(({username}) => ({user:username})))
-  .or(z.string().min(2).transform(user => ({user})));
+const zUser = z
+  .object({ user: z.string().min(2) })
+  .or(
+    z
+      .object({ username: z.string().min(2) })
+      .transform(({ username }) => ({ user: username }))
+  )
+  .or(
+    z
+      .string()
+      .min(2)
+      .transform((user) => ({ user }))
+  );
 
 export const TableBody = {
-  Join: zUser.transform(({user}) => JSON.stringify({user, type: 'JOIN'})).parse,
-  Update: z.object({user: z.string().min(2),konfi: z.number().int()})
-    .transform(({user, konfi}) => JSON.stringify({user, konfi, type: 'UPDATE'})).parse,
-}
+  Join: zUser.transform(({ user }) => JSON.stringify({ user, type: 'JOIN' }))
+    .parse,
+  Update: z
+    .object({ user: z.string().min(2), konfi: z.number().int() })
+    .transform(({ user, konfi }) =>
+      JSON.stringify({ user, konfi, type: 'UPDATE' })
+    ).parse,
+};
 export const TableDestination = {
-  Join: ((tablename:string)=>`/live/join/${tablename}`),
-  Update: ((tablename:string)=>`/live/update/${tablename}`),
-}
-
+  Join: (tablename: string) => `/live/join/${tablename}`,
+  Update: (tablename: string) => `/live/update/${tablename}`,
+};

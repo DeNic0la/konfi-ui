@@ -19,7 +19,6 @@ body {
   font-display: swap;
 }
 
-
 body {
   margin: 0;
   padding: 0;
@@ -72,7 +71,8 @@ body {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -95,7 +95,12 @@ body {
 
 /* Loading shimmer effect for skeletons */
 .loading-shimmer {
-  background: linear-gradient(90deg, var(--p-surface-50) 25%,  var(--p-surface-100) 50%, var(--p-surface-50) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--p-surface-50) 25%,
+    var(--p-surface-100) 50%,
+    var(--p-surface-50) 75%
+  );
   background-size: 200% 100%;
   animation: loading 1.5s infinite;
 }
@@ -183,14 +188,14 @@ body {
 }
 
 @keyframes pulse-scale {
-  0% { 
-    transform: scale(1) translateZ(0); 
+  0% {
+    transform: scale(1) translateZ(0);
   }
-  50% { 
-    transform: scale(1.05) translateZ(0); 
+  50% {
+    transform: scale(1.05) translateZ(0);
   }
-  100% { 
-    transform: scale(1) translateZ(0); 
+  100% {
+    transform: scale(1) translateZ(0);
   }
 }
 

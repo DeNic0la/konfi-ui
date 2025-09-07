@@ -44,7 +44,7 @@ import { ChartComponent, ChartType } from 'ng-apexcharts';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Skeleton } from 'primeng/skeleton';
 import { Toast } from 'primeng/toast';
-import {MessageService, PrimeTemplate} from 'primeng/api';
+import { MessageService, PrimeTemplate } from 'primeng/api';
 import { Badge } from 'primeng/badge';
 import { Panel } from 'primeng/panel';
 
@@ -62,7 +62,7 @@ import { Panel } from 'primeng/panel';
     Toast,
     Badge,
     Panel,
-    PrimeTemplate
+    PrimeTemplate,
   ],
   providers: [MessageService],
   templateUrl: './table-admin.component.html',
@@ -99,8 +99,16 @@ import { Panel } from 'primeng/panel';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TableAdminComponent implements OnInit {
-  public primaryColor = $dt('primary.color') as {name: string, variable: string, value: `#${string}`};
-  public surfaceColor = $dt('surface.color') as {name: string, variable: string, value: `#${string}`};
+  public primaryColor = $dt('primary.color') as {
+    name: string;
+    variable: string;
+    value: `#${string}`;
+  };
+  public surfaceColor = $dt('surface.color') as {
+    name: string;
+    variable: string;
+    value: `#${string}`;
+  };
   private readonly onCopied$ = new Subject<void>();
   private readonly onCopiedFiltered$ = this.onCopied$.pipe(
     throttleTime(1000),
@@ -127,7 +135,9 @@ export class TableAdminComponent implements OnInit {
   isInitialLoading = signal(true);
   isQrLoading = signal(true);
   isChartLoading = signal(true);
-  connectionStatus = signal<'connecting' | 'connected' | 'disconnected' | 'reconnecting'>('connecting');
+  connectionStatus = signal<
+    'connecting' | 'connected' | 'disconnected' | 'reconnecting'
+  >('connecting');
   participantCount = signal(0);
 
   ngOnInit() {
@@ -145,18 +155,26 @@ export class TableAdminComponent implements OnInit {
     });
 
     // Subscribe to connection status
-    this.webSocketService.connectionStatus$.subscribe(status => {
+    this.webSocketService.connectionStatus$.subscribe((status) => {
       this.connectionStatus.set(status);
 
-      switch(status) {
+      switch (status) {
         case 'connected':
           this.showToast('success', 'Verbunden', 'Live-Updates aktiviert');
           break;
         case 'disconnected':
-          this.showToast('error', 'Verbindung verloren', 'Versuche wiederherzustellen...');
+          this.showToast(
+            'error',
+            'Verbindung verloren',
+            'Versuche wiederherzustellen...'
+          );
           break;
         case 'reconnecting':
-          this.showToast('info', 'Verbinde neu', 'Stelle Verbindung wieder her...');
+          this.showToast(
+            'info',
+            'Verbinde neu',
+            'Stelle Verbindung wieder her...'
+          );
           break;
       }
     });
@@ -166,18 +184,26 @@ export class TableAdminComponent implements OnInit {
     try {
       this.clipboad.copy(this.joinUrl());
       this.onCopied$.next();
-      this.showToast('success', 'Link kopiert', 'Der Einladungslink wurde in die Zwischenablage kopiert');
+      this.showToast(
+        'success',
+        'Link kopiert',
+        'Der Einladungslink wurde in die Zwischenablage kopiert'
+      );
     } catch {
       this.showToast('error', 'Fehler', 'Link konnte nicht kopiert werden');
     }
   }
 
-  private showToast(severity: 'success' | 'error' | 'info' | 'warn', summary: string, detail: string) {
+  private showToast(
+    severity: 'success' | 'error' | 'info' | 'warn',
+    summary: string,
+    detail: string
+  ) {
     this.messageService.add({
       severity,
       summary,
       detail,
-      life: 3000
+      life: 3000,
     });
   }
   private readonly a$: Observable<ZodTableMessage> = toObservable(this.id).pipe(
@@ -190,10 +216,14 @@ export class TableAdminComponent implements OnInit {
     tap((message) => {
       // Show real-time activity notifications
       if (message.type === 'UPDATE' && message.user) {
-        this.showToast('info', 'Vote Update', `${message.user} hat sein Vote aktualisiert`);
+        this.showToast(
+          'info',
+          'Vote Update',
+          `${message.user} hat sein Vote aktualisiert`
+        );
       }
     }),
-    catchError(error => {
+    catchError((error) => {
       console.error('Error observing table:', error);
       this.showToast('error', 'Fehler', 'Problem beim Laden der Live-Daten');
       return of(null as unknown as ZodTableMessage);
@@ -236,10 +266,14 @@ export class TableAdminComponent implements OnInit {
       this.participantCount.set(users.length);
       return users;
     }),
-    tap(users => {
+    tap((users) => {
       // Show notifications for participant changes
       if (users.length > this.participantCount()) {
-        this.showToast('info', 'Neuer Teilnehmer', 'Jemand ist dem Tisch beigetreten');
+        this.showToast(
+          'info',
+          'Neuer Teilnehmer',
+          'Jemand ist dem Tisch beigetreten'
+        );
       }
     }),
     shareReplay({ refCount: true, bufferSize: 1 })
@@ -265,7 +299,7 @@ export class TableAdminComponent implements OnInit {
   );
 
   public hasChartData$ = this.series$.pipe(
-    map(series => series[0]?.data?.some(value => value > 0) ?? false),
+    map((series) => series[0]?.data?.some((value) => value > 0) ?? false),
     shareReplay({ refCount: true, bufferSize: 1 })
   );
 

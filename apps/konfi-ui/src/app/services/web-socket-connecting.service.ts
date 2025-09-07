@@ -10,21 +10,43 @@ import {
   merge,
   retry,
   catchError,
-  of, takeUntil, Subject, take, debounceTime, delay
+  of,
+  takeUntil,
+  Subject,
+  take,
+  debounceTime,
+  delay,
 } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { RxStomp } from '@stomp/rx-stomp';
-import {CheckTableMessage, TableBody, TableDestination, TableMessage} from '../zod/TableMessage';
+import {
+  CheckTableMessage,
+  TableBody,
+  TableDestination,
+  TableMessage,
+} from '../zod/TableMessage';
 import { z } from 'zod';
-import {HttpClient} from "@angular/common/http";
+import { HttpClient } from '@angular/common/http';
 
-const nativeWebSocketFactory = (http:HttpClient):Observable<string> => {
-  return http.get<{wsProtocol: string|undefined,wsHost:string|undefined}>('express/config').pipe(
-    filter((value) => z.object({wsProtocol: z.string().min(1), wsHost: z.string().min(2)}).safeParse(value).success),
-    map(({wsProtocol,wsHost}) => `${wsProtocol}://${wsHost}/native`),
-    take(1),
-  )
-}
+const nativeWebSocketFactory = (http: HttpClient): Observable<string> => {
+  return http
+    .get<{ wsProtocol: string | undefined; wsHost: string | undefined }>(
+      'express/config'
+    )
+    .pipe(
+      filter(
+        (value) =>
+          z
+            .object({
+              wsProtocol: z.string().min(1),
+              wsHost: z.string().min(2),
+            })
+            .safeParse(value).success
+      ),
+      map(({ wsProtocol, wsHost }) => `${wsProtocol}://${wsHost}/native`),
+      take(1)
+    );
+};
 
 const webSocketJsFactory = () => {
   const prefix = environment.production ? 'https' : 'http';
@@ -42,7 +64,9 @@ const statemap = {
   providedIn: 'root',
   useFactory: () => {
     if (isPlatformBrowser(inject(PLATFORM_ID))) {
-      return new WebSocketConnectingService(nativeWebSocketFactory(inject(HttpClient)));
+      return new WebSocketConnectingService(
+        nativeWebSocketFactory(inject(HttpClient))
+      );
     }
     return null;
   },
@@ -50,43 +74,44 @@ const statemap = {
 export class WebSocketConnectingService {
   private readonly rxStompClient = new RxStomp();
 
-
   // Connection status tracking
-  private readonly connectionStatusSubject = new BehaviorSubject<'connecting' | 'connected' | 'disconnected' | 'reconnecting'>('connecting');
-  public readonly connectionStatus$: Observable<'connecting' | 'connected' | 'disconnected' | 'reconnecting'> = this.rxStompClient.connectionState$.pipe(
+  private readonly connectionStatusSubject = new BehaviorSubject<
+    'connecting' | 'connected' | 'disconnected' | 'reconnecting'
+  >('connecting');
+  public readonly connectionStatus$: Observable<
+    'connecting' | 'connected' | 'disconnected' | 'reconnecting'
+  > = this.rxStompClient.connectionState$.pipe(
     map((state) => statemap[state]),
     shareReplay({ refCount: true, bufferSize: 1 })
   );
 
-
   // Operation status tracking
-  private readonly operationStatusSubject = new BehaviorSubject<{ type: string; status: 'idle' | 'loading' | 'success' | 'error'; message?: string }>({ type: 'none', status: 'idle' });
+  private readonly operationStatusSubject = new BehaviorSubject<{
+    type: string;
+    status: 'idle' | 'loading' | 'success' | 'error';
+    message?: string;
+  }>({ type: 'none', status: 'idle' });
   /**
    * @deprecated dont use that, i will removeit soon
    */
   public readonly operationStatus$ = merge(
     this.operationStatusSubject.asObservable(),
     this.operationStatusSubject.asObservable().pipe(
-      filter(event =>event.status !== 'idle'),
+      filter((event) => event.status !== 'idle'),
       debounceTime(2000),
       map(() => ({ type: 'none', status: 'idle' as const })),
       delay(1000)
     )
-  ).pipe(
-    shareReplay({ refCount: true, bufferSize: 1 })
-  )
-
-
+  ).pipe(shareReplay({ refCount: true, bufferSize: 1 }));
 
   // eslint-disable-next-line @angular-eslint/prefer-inject
   constructor(nativeUrl: Observable<string>) {
     if (typeof WebSocket !== 'function') {
       this.setupSockJs();
-    }
-    else {
-      nativeUrl.subscribe(value =>{
-        this.setupNative(value)
-      })
+    } else {
+      nativeUrl.subscribe((value) => {
+        this.setupNative(value);
+      });
     }
   }
   private setupNative(url: string) {
@@ -109,17 +134,23 @@ export class WebSocketConnectingService {
     this.rxStompClient.activate();
   }
 
-  private  _observingTable = {
+  private _observingTable = {
     tableName: '',
     observable: null,
-    unsub: new Subject()
-  } as {tableName:string, observable: Observable<ZodTableMessage|null>|null, unsub: Subject<void>};
-  public observeTable(tableName: string):Observable<ZodTableMessage|null> {
-    if (this._observingTable.tableName === tableName && this._observingTable.observable !== null){
+    unsub: new Subject(),
+  } as {
+    tableName: string;
+    observable: Observable<ZodTableMessage | null> | null;
+    unsub: Subject<void>;
+  };
+  public observeTable(tableName: string): Observable<ZodTableMessage | null> {
+    if (
+      this._observingTable.tableName === tableName &&
+      this._observingTable.observable !== null
+    ) {
       return this._observingTable.observable;
-    }
-    else if (this._observingTable.observable !== null){
-      this._observingTable.unsub.next()
+    } else if (this._observingTable.observable !== null) {
+      this._observingTable.unsub.next();
     }
     const o = this.rxStompClient.watch(`/table/${tableName}`).pipe(
       takeUntil(this._observingTable.unsub),
@@ -134,111 +165,138 @@ export class WebSocketConnectingService {
           return null; // or handle the error as needed
         }
       }),
-      catchError(error => {
+      catchError((error) => {
         console.error('WebSocket observation error:', error);
-        this.operationStatusSubject.next({ type: 'observe', status: 'error', message: 'Failed to observe table updates' });
+        this.operationStatusSubject.next({
+          type: 'observe',
+          status: 'error',
+          message: 'Failed to observe table updates',
+        });
         return of(null);
       }),
       shareReplay({ refCount: true, bufferSize: 1 })
     );
     this._observingTable.tableName = tableName;
     this._observingTable.observable = o;
-    return  o;
+    return o;
   }
 
-  public joinTable$(tableName: string, username: string):Observable<{status: 'loading' | 'success' | 'error',message?: string}> {
-    return new Observable(subscriber => {
+  public joinTable$(
+    tableName: string,
+    username: string
+  ): Observable<{ status: 'loading' | 'success' | 'error'; message?: string }> {
+    return new Observable((subscriber) => {
       const success$ = this.observeTable(tableName).pipe(
-        filter((v) => v!== null && v.user === username),
+        filter((v) => v !== null && v.user === username),
         take(1),
-        map(value => value?.type === 'JOIN')
-      )
-      subscriber.add(success$.subscribe({
-        next: value => {
-          subscriber.next({status: value ? 'success' : 'error'})
-        },
-        error: err => {
-          subscriber.next({status: 'error', message: err.message})
-          subscriber.complete();
-        },
-        complete: () => {
-          subscriber.complete();
-        }
-      }))
+        map((value) => value?.type === 'JOIN')
+      );
+      subscriber.add(
+        success$.subscribe({
+          next: (value) => {
+            subscriber.next({ status: value ? 'success' : 'error' });
+          },
+          error: (err) => {
+            subscriber.next({ status: 'error', message: err.message });
+            subscriber.complete();
+          },
+          complete: () => {
+            subscriber.complete();
+          },
+        })
+      );
       try {
         this.rxStompClient.publish({
           destination: TableDestination.Join(tableName),
-          body: TableBody.Join(username)
+          body: TableBody.Join(username),
         });
-        subscriber.next({status: 'loading'})
-      }
-      catch (e){
+        subscriber.next({ status: 'loading' });
+      } catch (e) {
         console.error(e);
-        subscriber.next({status: 'error', message: (e as Error).message});
+        subscriber.next({ status: 'error', message: (e as Error).message });
         subscriber.complete();
       }
-    })
+    });
   }
   public joinTable(tableName: string, username: string) {
-    this.operationStatusSubject.next({ type: 'join', status: 'loading', message: 'Joining table...' });
+    this.operationStatusSubject.next({
+      type: 'join',
+      status: 'loading',
+      message: 'Joining table...',
+    });
     const joinedSuccessfully$ = this.observeTable(tableName).pipe(
-      filter((v) => v!== null && v.user === username),
+      filter((v) => v !== null && v.user === username),
       take(1),
-      map(value => value?.type === 'JOIN')
-    )
+      map((value) => value?.type === 'JOIN')
+    );
     try {
       this.rxStompClient.publish({
         destination: TableDestination.Join(tableName),
-        body: TableBody.Join(username)
+        body: TableBody.Join(username),
       });
 
       // Simulate success after a delay (in real app, this would be confirmed by server response)
       joinedSuccessfully$.subscribe((success) => {
         if (success) {
-          this.operationStatusSubject.next({ type: 'join', status: 'success', message: 'Successfully joined table' });
+          this.operationStatusSubject.next({
+            type: 'join',
+            status: 'success',
+            message: 'Successfully joined table',
+          });
         }
       });
-
     } catch (error) {
-      this.operationStatusSubject.next({ type: 'join', status: 'error', message: 'Failed to join table' });
+      this.operationStatusSubject.next({
+        type: 'join',
+        status: 'error',
+        message: 'Failed to join table',
+      });
       console.error(error);
       //throw error;
     }
   }
-  public updateKonfiVote$(tableName: string, username: string, konfi: number):Observable<{status: 'loading' | 'success' | 'error' | 'unknown'}> {
-    return new Observable(subscriber => {
+  public updateKonfiVote$(
+    tableName: string,
+    username: string,
+    konfi: number
+  ): Observable<{ status: 'loading' | 'success' | 'error' | 'unknown' }> {
+    return new Observable((subscriber) => {
       const success$ = this.observeTable(tableName).pipe(
-        filter((v) => v!== null && v.user === username && v.type === 'UPDATE'),
+        filter((v) => v !== null && v.user === username && v.type === 'UPDATE'),
         take(1),
-        map(value => value?.konfi)
-      )
-      subscriber.add(success$.subscribe(value =>{
-        subscriber.next({status: value? 'success' : 'unknown'})
-        subscriber.complete();
-      }));
+        map((value) => value?.konfi)
+      );
+      subscriber.add(
+        success$.subscribe((value) => {
+          subscriber.next({ status: value ? 'success' : 'unknown' });
+          subscriber.complete();
+        })
+      );
       try {
         this.rxStompClient.publish({
           destination: TableDestination.Update(tableName),
-          body: TableBody.Update({user: username, konfi})
+          body: TableBody.Update({ user: username, konfi }),
         });
-        subscriber.next({status: 'loading'})
-      }
-      catch (e) {
-        subscriber.next({status: 'error'});
+        subscriber.next({ status: 'loading' });
+      } catch (e) {
+        subscriber.next({ status: 'error' });
         console.error(e);
         subscriber.complete();
       }
-    })
+    });
   }
   public updateKonfiVote(tableName: string, username: string, konfi: number) {
     try {
       this.rxStompClient.publish({
         destination: TableDestination.Update(tableName),
-        body: TableBody.Update({user: username, konfi})
+        body: TableBody.Update({ user: username, konfi }),
       });
-
     } catch (error) {
-      this.operationStatusSubject.next({ type: 'vote', status: 'error', message: 'Failed to update vote' });
+      this.operationStatusSubject.next({
+        type: 'vote',
+        status: 'error',
+        message: 'Failed to update vote',
+      });
       console.error(error);
       //throw error;
     }

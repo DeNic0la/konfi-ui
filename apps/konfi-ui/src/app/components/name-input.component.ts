@@ -4,7 +4,8 @@ import {
   inject,
   ViewEncapsulation,
   signal,
-  computed, output,
+  computed,
+  output,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FloatLabelModule } from 'primeng/floatlabel';
@@ -15,7 +16,7 @@ import { Card } from 'primeng/card';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Toast } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
-import {AutoFocus} from "primeng/autofocus";
+import { AutoFocus } from 'primeng/autofocus';
 
 @Component({
   selector: 'app-name-input',
@@ -28,24 +29,30 @@ import {AutoFocus} from "primeng/autofocus";
     Card,
     ProgressSpinner,
     Toast,
-    AutoFocus
+    AutoFocus,
   ],
   providers: [MessageService],
   template: `
-    <div class="h-screen w-full flex align-items-center justify-content-center p-4">
-      <p-toast position="top-center" [breakpoints]="{'920px': {width: '100%', right: '0', left: '0'}}"></p-toast>
+    <div
+      class="h-screen w-full flex align-items-center justify-content-center p-4"
+    >
+      <p-toast
+        position="top-center"
+        [breakpoints]="{ '920px': { width: '100%', right: '0', left: '0' } }"
+      ></p-toast>
 
       <p-card class="w-full max-w-md">
         <ng-template pTemplate="header">
           <div class="text-center py-4">
             <i class="pi pi-user text-5xl text-primary mb-3 block"></i>
             <h2 class="m-0">Willkommen!</h2>
-            <p class="text-color-secondary mt-2 mb-0">Gib deinen Namen ein um teilzunehmen</p>
+            <p class="text-color-secondary mt-2 mb-0">
+              Gib deinen Namen ein um teilzunehmen
+            </p>
           </div>
         </ng-template>
 
         <div class="flex flex-column gap-4">
-
           <!-- Name Input with Validation -->
           <div class="field">
             <p-floatlabel>
@@ -68,22 +75,32 @@ import {AutoFocus} from "primeng/autofocus";
             </p-floatlabel>
 
             @if (showValidationError()) {
-              <small class="p-error block mt-1">
-                {{ validationMessage() }}
-              </small>
+            <small class="p-error block mt-1">
+              {{ validationMessage() }}
+            </small>
             }
           </div>
 
           <!-- Input Guidelines -->
           <div class="text-sm text-color-secondary">
             <div class="flex align-items-center gap-2 mb-1">
-              <i class="pi" [class.pi-check]="isValidLength()" [class.pi-times]="!isValidLength()"
-                 [class.text-green-500]="isValidLength()" [class.text-red-500]="!isValidLength()"></i>
+              <i
+                class="pi"
+                [class.pi-check]="isValidLength()"
+                [class.pi-times]="!isValidLength()"
+                [class.text-green-500]="isValidLength()"
+                [class.text-red-500]="!isValidLength()"
+              ></i>
               <span>2-30 Zeichen</span>
             </div>
             <div class="flex align-items-center gap-2">
-              <i class="pi" [class.pi-check]="!hasInvalidChars()" [class.pi-times]="hasInvalidChars()"
-                 [class.text-green-500]="!hasInvalidChars()" [class.text-red-500]="hasInvalidChars()"></i>
+              <i
+                class="pi"
+                [class.pi-check]="!hasInvalidChars()"
+                [class.pi-times]="hasInvalidChars()"
+                [class.text-green-500]="!hasInvalidChars()"
+                [class.text-red-500]="hasInvalidChars()"
+              ></i>
               <span>Nur Buchstaben, Zahlen und Leerzeichen</span>
             </div>
           </div>
@@ -100,17 +117,20 @@ import {AutoFocus} from "primeng/autofocus";
             class="w-full mt-2"
             severity="primary"
             size="large"
-          >
-          </button>
+          ></button>
 
           <!-- Processing Feedback -->
           @if (isProcessing()) {
-            <div class="flex align-items-center justify-content-center gap-2 text-primary">
-              <p-progressSpinner styleClass="w-1rem h-1rem" strokeWidth="6"></p-progressSpinner>
-              <span class="text-sm">Trete dem Tisch bei...</span>
-            </div>
+          <div
+            class="flex align-items-center justify-content-center gap-2 text-primary"
+          >
+            <p-progressSpinner
+              styleClass="w-1rem h-1rem"
+              strokeWidth="6"
+            ></p-progressSpinner>
+            <span class="text-sm">Trete dem Tisch bei...</span>
+          </div>
           }
-
         </div>
       </p-card>
     </div>
@@ -140,7 +160,6 @@ export class NameInputComponent {
   showValidationError = signal(false);
   declareUsername = output<string>();
 
-
   // Computed validations
   isValidLength = computed(() => {
     const name = this.tempUsername().trim();
@@ -154,7 +173,11 @@ export class NameInputComponent {
   });
 
   isFormValid = computed(() => {
-    return this.isValidLength() && !this.hasInvalidChars() && this.tempUsername().trim().length > 0;
+    return (
+      this.isValidLength() &&
+      !this.hasInvalidChars() &&
+      this.tempUsername().trim().length > 0
+    );
   });
 
   validationMessage = computed(() => {
@@ -195,13 +218,12 @@ export class NameInputComponent {
         severity: 'error',
         summary: 'Ungültiger Name',
         detail: this.validationMessage(),
-        life: 4000
+        life: 4000,
       });
       this.isProcessing.set(false);
       return;
     }
 
-    this.declareUsername.emit(trimmedName)
-
+    this.declareUsername.emit(trimmedName);
   }
 }
