@@ -25,7 +25,7 @@ import {ButtonDirective} from 'primeng/button';
         </div>
 
         <div class="options-grid">
-          <p-card class="option-card brunch-option">
+          <p-card class="option-card brunch-option hidden">
             <div class="option-content">
               <i class="pi pi-star-fill option-icon"></i>
               <h3 class="option-title">Create Brunch</h3>

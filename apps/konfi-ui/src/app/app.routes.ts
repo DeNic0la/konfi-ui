@@ -1,14 +1,7 @@
 import { Route } from '@angular/router';
 
 export const appRoutes: Route[] = [
-  {
-    path: 'brunch/create',
-    loadComponent: () =>
-      import('./views/brunch-create.component').then(
-        (value) => value.BrunchCreateComponent
-      ),
-    title: 'Create Brunch',
-  },
+
   {
     path: 'table/create',
     loadComponent: () =>
