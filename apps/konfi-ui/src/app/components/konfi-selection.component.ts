@@ -355,12 +355,12 @@ export class KonfiSelectionComponent {
   }
 
   private _blockSelect = false;
-  @HostListener('window:keydow.Escape', ['0', '$event'])
-  @HostListener('window:keydow.1', ['1', '$event'])
-  @HostListener('window:keydow.2', ['2', '$event'])
-  @HostListener('window:keydow.3', ['3', '$event'])
-  @HostListener('window:keydow.4', ['4', '$event'])
-  @HostListener('window:keydow.5', ['5', '$event'])
+  @HostListener('window:keydown.Escape', ['0', '$event'])
+  @HostListener('window:keydown.1', ['1', '$event'])
+  @HostListener('window:keydown.2', ['2', '$event'])
+  @HostListener('window:keydown.3', ['3', '$event'])
+  @HostListener('window:keydown.4', ['4', '$event'])
+  @HostListener('window:keydown.5', ['5', '$event'])
   public select(vote: number, event?: Event) {
     if (this._blockSelect) return;
     if (event !== undefined) {
